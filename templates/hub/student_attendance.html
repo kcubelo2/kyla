@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>My Attendance</h2>
+    <select id="courseFilter" class="form-control" style="width: auto; min-width: 200px;">
+        <option value="all">All Subjects</option>
+        {% for course in courses %}
+        <option value="{{ course.id }}">{{ course.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="card glass">
+    {% if records %}
+    <table style="width: 100%; border-collapse: collapse; text-align: left;">
+        <thead>
+            <tr style="border-bottom: 2px solid var(--border-color);">
+                <th style="padding: 1rem;">Date</th>
+                <th style="padding: 1rem;">Subject</th>
+                <th style="padding: 1rem;">Status</th>
+                <th style="padding: 1rem;">Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr class="item-row" data-course-id="{{ record.course.id }}" style="border-bottom: 1px solid var(--border-color);">
+                <td style="padding: 1rem;">{{ record.date|date:"F d, Y" }}</td>
+                <td style="padding: 1rem; font-weight: 500;">{{ record.course.name }}</td>
+                <td style="padding: 1rem;">
+                    {% if record.status == 'present' %}
+                        <span class="badge badge-success" style="text-transform: capitalize;">{{ record.status }}</span>
+                    {% elif record.status == 'late' %}
+                        <span class="badge badge-warning" style="text-transform: capitalize;">{{ record.status }}</span>
+                    {% else %}
+                        <span class="badge badge-error" style="background: rgba(239, 68, 68, 0.1); color: var(--error); text-transform: capitalize;">{{ record.status }}</span>
+                    {% endif %}
+                </td>
+                <td style="padding: 1rem; color: var(--text-secondary); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ record.notes|default:"-" }}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="padding: 3rem; text-align: center;">
+        <h3 style="color: var(--text-secondary);">No attendance records found.</h3>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('courseFilter').addEventListener('change', function() {
+        const courseVal = this.value;
+        document.querySelectorAll('.item-row').forEach(row => {
+            if (courseVal === 'all' || row.getAttribute('data-course-id') === courseVal) {
+                row.style.display = 'table-row';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

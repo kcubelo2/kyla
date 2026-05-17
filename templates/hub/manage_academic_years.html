@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Academic Years</h2>
+    <a href="{% url 'create_academic_year' %}" class="btn btn-primary">+ Create Academic Year</a>
+</div>
+
+{% if current_year %}
+<div class="card glass" style="margin-bottom: 2rem; padding: 1rem;">
+    <h3 style="margin-bottom: 0.5rem;">Current Active Year</h3>
+    <div style="display: flex; align-items: center; gap: 1rem;">
+        <span class="badge badge-success" style="font-size: 1.1rem; padding: 0.5rem 1rem;">{{ current_year.name }}</span>
+        <span style="color: var(--text-secondary);">{{ current_year.start_date|date:"M d, Y" }} - {{ current_year.end_date|date:"M d, Y" }}</span>
+    </div>
+</div>
+{% endif %}
+
+<div class="card glass" style="padding: 1rem; overflow-x: auto;">
+    {% if academic_years %}
+        <table style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem; color: var(--text-secondary);">Academic Year</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Start Date</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">End Date</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Status</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for year in academic_years %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem; font-weight: 600;">{{ year.name }}</td>
+                    <td style="padding: 1rem; color: var(--text-secondary);">{{ year.start_date|date:"M d, Y" }}</td>
+                    <td style="padding: 1rem; color: var(--text-secondary);">{{ year.end_date|date:"M d, Y" }}</td>
+                    <td style="padding: 1rem;">
+                        {% if year.is_active %}
+                            <span class="badge badge-success">Active</span>
+                        {% else %}
+                            <span class="badge badge-secondary">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if not year.is_active %}
+                            <a href="{% url 'set_active_year' year.id %}" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.8rem; margin-right: 0.5rem;">Set Active</a>
+                        {% endif %}
+                        <a href="{% url 'delete_academic_year' year.id %}" class="btn btn-error" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;" onclick="return confirm('Are you sure you want to delete this academic year?')">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No academic years have been created yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

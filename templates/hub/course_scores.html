@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body { background-color: white !important; }
+        .navbar, .sidebar, .navbar-toggle, button, .btn, .edit-actions, .screen-value { display: none !important; }
+        .main-content { padding: 1rem !important; }
+        .card { box-shadow: none !important; border: 1px solid #ccc !important; }
+        table { width: 100% !important; }
+        th, td { border: 1px solid #ccc !important; padding: 0.75rem !important; }
+        th { background-color: #f0f0f0 !important; font-weight: bold !important; color: black !important; }
+        h2 { color: black !important; margin-top: 0 !important; }
+        p { color: black !important; }
+        .print-value { display: block !important; color: black !important; }
+    }
+    .print-button { margin: 0 !important; }
+    .print-button { margin: 0 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h2>Manage Subject Scores</h2>
+        <p style="color: var(--text-secondary); margin-top: 0.5rem;">Edit scores and letter grades for submissions in {{ course.name }}.</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+        <button type="button" onclick="window.print()" class="btn btn-primary print-button">🖨️ Print Scores</button>
+        <a href="{% url 'course_detail' course.id }}" class="btn btn-outline">Back to Subject</a>
+    </div>
+</div>
+
+<div class="card glass" style="padding: 1.5rem; overflow-x: auto;">
+    {% if submissions %}
+    <form method="POST">
+        {% csrf_token %}
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-secondary);">Student</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-secondary);">Task</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-secondary);">Submitted</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-secondary);">Score</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-secondary);">Letter Grade</th>
+                    <th style="padding: 0.75rem; text-align: left; color: var(--text-secondary);">Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for submission in submissions %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 0.75rem; vertical-align: top;">{{ submission.student.get_full_name|default:submission.student.username }}</td>
+                    <td style="padding: 0.75rem; vertical-align: top;">
+                        <strong>{{ submission.assignment.title }}</strong><br>
+                        <span style="color: var(--text-secondary); font-size: 0.9rem;">{{ submission.assignment.activity_type|title }}</span>
+                    </td>
+                    <td style="padding: 0.75rem; vertical-align: top; color: var(--text-secondary);">{{ submission.submitted_at|date:"M d, Y H:i" }}</td>
+                    <td style="padding: 0.75rem; vertical-align: top;">
+                        <span class="print-value">{{ submission.score|default:'-' }}</span>
+                        <input type="number" name="score_{{ submission.id }}" class="form-control screen-value" min="0" max="{{ submission.assignment.max_score }}" value="{{ submission.score|default_if_none:'' }}" style="max-width: 120px;">
+                    </td>
+                    <td style="padding: 0.75rem; vertical-align: top;">
+                        <span class="print-value">{{ submission.letter_grade|default:'No grade' }}</span>
+                        <select name="letter_grade_{{ submission.id }}" class="form-control screen-value" style="max-width: 140px;">
+                            <option value="" {% if not submission.letter_grade %}selected{% endif %}>No grade</option>
+                            <option value="A+" {% if submission.letter_grade == 'A+' %}selected{% endif %}>A+</option>
+                            <option value="A" {% if submission.letter_grade == 'A' %}selected{% endif %}>A</option>
+                            <option value="A-" {% if submission.letter_grade == 'A-' %}selected{% endif %}>A-</option>
+                            <option value="B+" {% if submission.letter_grade == 'B+' %}selected{% endif %}>B+</option>
+                            <option value="B" {% if submission.letter_grade == 'B' %}selected{% endif %}>B</option>
+                            <option value="B-" {% if submission.letter_grade == 'B-' %}selected{% endif %}>B-</option>
+                            <option value="C+" {% if submission.letter_grade == 'C+' %}selected{% endif %}>C+</option>
+                            <option value="C" {% if submission.letter_grade == 'C' %}selected{% endif %}>C</option>
+                            <option value="C-" {% if submission.letter_grade == 'C-' %}selected{% endif %}>C-</option>
+                            <option value="D" {% if submission.letter_grade == 'D' %}selected{% endif %}>D</option>
+                            <option value="F" {% if submission.letter_grade == 'F' %}selected{% endif %}>F</option>
+                        </select>
+                    </td>
+                    <td style="padding: 0.75rem; vertical-align: top;">
+                        <span class="print-value">{{ submission.feedback|default:'-' }}</span>
+                        <textarea name="feedback_{{ submission.id }}" class="form-control screen-value" rows="2" style="min-width: 220px;">{{ submission.feedback }}</textarea>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="submit" class="btn btn-primary">Save Grades</button>
+        </div>
+    </form>
+    {% else %}
+    <p style="color: var(--text-secondary);">No submissions have been made for this subject yet. Grades appear here once students submit tasks.</p>
+    {% endif %}
+</div>
+{% endblock %}

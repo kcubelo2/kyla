@@ -1,0 +1,160 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    /* Preview Container Styles */
+    #preview-container {
+        display: none;
+        margin-top: 2rem;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        min-height: 200px;
+        color: #000; /* Ensure text is readable if app is dark mode */
+    }
+    
+    #preview-container.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .preview-header h3 {
+        margin: 0;
+        color: #333;
+    }
+</style>
+<!-- Include TinyMCE -->
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Edit Form</h2>
+    <a href="{% url 'forms_dashboard' %}" class="btn btn-outline">← Back to Forms</a>
+</div>
+
+<div class="card glass" style="max-width: 800px; margin: 0 auto;">
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Form Title <span style="color: red;">*</span></label>
+            <input type="text" name="title" required value="{{ form.title }}" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-secondary); color: var(--text-primary);">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description (Rich Text)</label>
+            <!-- TinyMCE Editor applied here -->
+            <textarea id="tinymce-editor" name="description" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-secondary); color: var(--text-primary); min-height: 200px; font-family: inherit;">{{ form.description }}</textarea>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Current File</label>
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; margin-bottom: 1rem;">
+                <p style="margin: 0; color: var(--text-secondary);">
+                    <strong>{{ form.file_name }}</strong><br>
+                    <a href="{{ form.file.url }}" target="_blank" style="color: var(--primary); text-decoration: none; font-size: 0.9rem;">Download current file →</a>
+                </p>
+            </div>
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Replace File (Optional)</label>
+            <input type="file" name="file" style="display: block; width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; background: var(--bg-secondary); color: var(--text-primary);" accept=".pdf,.xlsx,.xls,.doc,.docx">
+            <small style="color: var(--text-secondary); margin-top: 0.5rem; display: block;">Leave empty to keep the current file. Supported: PDF, Excel, Word documents</small>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Update Form</button>
+            <button type="button" id="preview-btn" class="btn btn-outline" style="flex: 1;">Show Preview</button>
+            <a href="{% url 'forms_dashboard' %}" class="btn btn-outline" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- In-Page Preview Section -->
+<div id="preview-container" style="max-width: 800px; margin: 2rem auto;">
+    <div class="preview-header">
+        <h3>Form Preview</h3>
+        <button type="button" id="close-preview-btn" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Close</button>
+    </div>
+    <h2 id="preview-title" style="text-align: center; margin-bottom: 1rem; color: #000;"></h2>
+    <div id="preview-content" style="padding: 1rem; background: #fafafa; border: 1px solid #eee; border-radius: 4px;"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize TinyMCE
+    tinymce.init({
+        selector: '#tinymce-editor',
+        height: 300,
+        menubar: false,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | blocks | ' +
+        'bold italic forecolor | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'table image | removeformat | help',
+        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px }',
+        setup: function(editor) {
+            editor.on('change', function() {
+                tinymce.triggerSave();
+            });
+        }
+    });
+
+    // Handle Preview Button
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewBtn = document.getElementById('preview-btn');
+        const closePreviewBtn = document.getElementById('close-preview-btn');
+        const previewContainer = document.getElementById('preview-container');
+        const previewTitle = document.getElementById('preview-title');
+        const previewContent = document.getElementById('preview-content');
+        
+        previewBtn.addEventListener('click', function() {
+            // Save TinyMCE content to textarea before grabbing it
+            tinymce.triggerSave();
+            
+            // Get values
+            const titleInput = document.querySelector('input[name="title"]').value;
+            const contentTextarea = document.getElementById('tinymce-editor').value;
+            
+            // Update Preview
+            previewTitle.textContent = titleInput;
+            previewContent.innerHTML = contentTextarea || '<span style="color:#888;">No description provided.</span>';
+            
+            // Show Preview
+            previewContainer.classList.add('active');
+            
+            // Scroll to preview smoothly
+            previewContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        closePreviewBtn.addEventListener('click', function() {
+            previewContainer.classList.remove('active');
+        });
+    });
+</script>
+{% endblock %}

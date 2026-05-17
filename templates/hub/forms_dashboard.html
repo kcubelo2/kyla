@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>School Forms (SF1 - SF8)</h2>
+</div>
+
+<div class="grid grid-4" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+    {% for form in forms_list %}
+    <div class="card glass" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--primary);">{{ form.id }}</h3>
+                <span class="badge badge-outline" style="font-size: 0.75rem;">DepEd</span>
+            </div>
+            <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem;">{{ form.title }}</h4>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem;">
+                {{ form.description }}
+            </p>
+        </div>
+        <div style="margin-top: auto;">
+            <a href="{% url 'edit_school_form' form.id %}" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Edit Form</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

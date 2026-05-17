@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>All Tasks</h2>
+    <div style="display: flex; gap: 1rem;">
+        <select id="courseFilter" class="form-control" style="width: auto; min-width: 200px;">
+            <option value="all">All Subjects</option>
+            {% for course in courses %}
+            <option value="{{ course.id }}">{{ course.name }}</option>
+            {% endfor %}
+        </select>
+        <select id="taskFilter" class="form-control" style="width: auto; min-width: 200px;">
+            <option value="all">All Types</option>
+            <option value="assignment">Assignments</option>
+            <option value="quiz">Quizzes</option>
+            <option value="activity">Activities</option>
+        </select>
+    </div>
+</div>
+
+<div class="grid" id="tasksGrid">
+    {% if tasks %}
+        {% for task in tasks %}
+        <div class="card glass task-card" data-type="{{ task.activity_type }}" data-course-id="{{ task.course.id }}">
+            <h3 style="color: var(--accent-primary);">{{ task.title }}</h3>
+            <div style="margin-bottom: 1rem;">
+                <span class="badge badge-primary" style="text-transform: capitalize;">{{ task.activity_type }}</span>
+                <span class="badge badge-warning" style="margin-left: 0.5rem;">Course: {{ task.course.name }}</span>
+            </div>
+            <p>{{ task.description|truncatewords:20 }}</p>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 1rem;">Due: {{ task.due_date }}</p>
+            <div style="margin-top: 1rem; text-align: right;">
+                <a href="{% url 'course_detail' task.course.id %}" class="btn btn-outline" style="font-size: 0.8rem;">View in Subject</a>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-secondary);">No tasks created yet.</p>
+    {% endif %}
+</div>
+
+<script>
+    function filterTasks() {
+        const typeVal = document.getElementById('taskFilter').value;
+        const courseVal = document.getElementById('courseFilter').value;
+        const cards = document.querySelectorAll('.task-card');
+        cards.forEach(card => {
+            const matchType = (typeVal === 'all' || card.getAttribute('data-type') === typeVal);
+            const matchCourse = (courseVal === 'all' || card.getAttribute('data-course-id') === courseVal);
+            if (matchType && matchCourse) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+    document.getElementById('taskFilter').addEventListener('change', filterTasks);
+    document.getElementById('courseFilter').addEventListener('change', filterTasks);
+</script>
+{% endblock %}

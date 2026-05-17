@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 500px; margin: 4rem auto; text-align: center;">
+    <h2 style="color: var(--error); margin-bottom: 1rem;">Delete Subject</h2>
+    <p style="margin-bottom: 2rem;">Are you absolutely sure you want to delete the subject "<strong>{{ course.name }}</strong>"? This action cannot be undone.</p>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div style="display: flex; gap: 1rem; justify-content: center;">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline" style="flex: 1;">Cancel</a>
+            <button type="submit" class="btn btn-error" style="flex: 1;">Yes, Delete It</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+    <a href="{% url 'dashboard' %}" class="btn" style="background-color: var(--accent-primary); color: #fff; padding: 0.5rem 1rem; font-size: 0.9rem; text-transform: capitalize;">back</a>
+</div>
+<div class="card glass" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div>
+            <h1>{{ course.name }}</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 1rem;">Teacher: {{ course.teacher.get_full_name|default:course.teacher.username }}</p>
+            <p>{{ course.description }}</p>
+        </div>
+        {% if is_teacher %}
+            <div style="text-align: right;">
+                <span class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1rem;">Subject Code: {{ course.class_code }}</span>
+                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-direction: column;">
+                    <a href="{% url 'mark_attendance' course.id %}" class="btn btn-outline" style="font-size: 0.8rem;">Mark Attendance</a>
+                    <a href="{% url 'export_attendance_report' course.id %}" class="btn btn-outline" style="font-size: 0.8rem;">Export Attendance Report</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="grid grid-3">
+    <!-- Main content (Tasks and Students) -->
+    <div style="grid-column: span 3;">
+        
+        {% if is_teacher %}
+        <div class="card glass" style="margin-bottom: 2rem; padding: 1rem;">
+            <p style="margin-bottom: 0.5rem; font-weight: 600; color: var(--text-secondary);">Quick Actions</p>
+            <div style="display: flex; gap: 1rem;">
+                <a href="{% url 'create_announcement' course.id %}" class="btn btn-outline" style="font-size: 0.9rem;">+ Post Announcement</a>
+                <a href="{% url 'upload_material' course.id %}" class="btn btn-outline" style="font-size: 0.9rem;">+ Upload Material</a>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+            <!-- Tasks Column -->
+            <div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h2>Tasks</h2>
+                    {% if is_teacher %}
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <a href="{% url 'create_assignment' course.id %}" class="btn btn-outline" style="padding: 0.25rem 0.5rem;">+ Create Task</a>
+                    <a href="{% url 'course_scores' course.id %}" class="btn btn-primary" style="padding: 0.25rem 0.5rem;">Manage Scores</a>
+                </div>
+                    {% endif %}
+                </div>
+                
+                {% if assignments %}
+                    {% for assignment in assignments %}
+                    <div class="card glass" style="margin-bottom: 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                            <h3 style="font-size: 1.1rem; margin-bottom: 0.5rem;">{{ assignment.title }}</h3>
+                            {% if is_teacher %}
+                                <a href="{% url 'edit_assignment' assignment.id %}" class="btn btn-outline" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Edit Target</a>
+                            {% endif %}
+                        </div>
+                        <span class="badge badge-primary" style="text-transform: capitalize; margin-bottom: 1rem; display: inline-block;">{{ assignment.activity_type }}</span>
+                        {% if assignment.is_closed %}
+                            <span class="badge badge-error" style="background: rgba(239, 68, 68, 0.1); color: var(--error); margin-bottom: 1rem; margin-left: 0.5rem; display: inline-block;">Closed</span>
+                        {% endif %}
+                        <p style="font-size: 0.9rem; color: var(--warning); margin-bottom: 0.5rem;">Due: {{ assignment.due_date|date:"D, M d" }}</p>
+                        
+                        {% if assignment.file %}
+                            <p style="font-size: 0.9rem; margin-bottom: 1rem;">
+                                <a href="{{ assignment.file.url }}" target="_blank" style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--accent-primary); font-weight: 500; background: var(--accent-secondary); padding: 0.25rem 0.5rem; border-radius: 4px;">
+                                    📎 View Attachment
+                                </a>
+                            </p>
+                        {% endif %}
+                        
+                        <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                            {% if not is_teacher %}
+                                {% if assignment.student_submission %}
+                                    {% if assignment.student_submission.score is not None %}
+                                        <div class="btn" style="width: 100%; font-size: 0.9rem; padding: 0.5rem; border: 2px solid var(--success); color: var(--success); background: rgba(16, 185, 129, 0.1);">Graded: {{ assignment.student_submission.score }}/{{ assignment.max_score }}</div>
+                                    {% else %}
+                                        <a href="{% url 'submit_assignment' assignment.id %}" class="btn" style="width: 100%; font-size: 0.9rem; padding: 0.5rem; border: 2px solid var(--success); color: var(--success); background: rgba(16, 185, 129, 0.1);">✓ Submitted (Edit)</a>
+                                    {% endif %}
+                                {% elif assignment.is_closed %}
+                                    <div class="btn" style="width: 100%; font-size: 0.9rem; padding: 0.5rem; border: 2px solid var(--text-secondary); color: var(--text-secondary); background: rgba(0,0,0,0.05); cursor: not-allowed;">Task Closed</div>
+                                {% else %}
+                                    <a href="{% url 'submit_assignment' assignment.id %}" class="btn btn-primary" style="width: 100%; font-size: 0.9rem; padding: 0.5rem;">View & Submit</a>
+                                {% endif %}
+                            {% else %}
+                                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                                    <h4 style="font-size: 0.9rem; margin-bottom: 0.5rem; color: var(--text-secondary);">Submissions:</h4>
+                                    <ul style="list-style: none; padding-left: 0; font-size: 0.9rem;">
+                                        {% for sub in assignment.submissions.all %}
+                                            <li style="padding: 0.25rem 0;">
+                                                <a href="{% url 'grade_submission' sub.id %}" style="display: flex; justify-content: space-between; text-decoration: none; color: inherit; padding: 0.25rem 0.5rem; {% if sub.score %}border-left: 3px solid var(--success);{% else %}border-left: 3px solid var(--warning);{% endif %} background: var(--bg-main); border-radius: 4px;">
+                                                    <span style="color: var(--accent-primary);">{{ sub.student.get_full_name|default:sub.student.username }}</span>
+                                                    <span style="color: var(--text-secondary);">
+                                                        {% if sub.score %}<strong style="color: var(--success); margin-right: 0.5rem;">Graded</strong>{% endif %}
+                                                        {{ sub.submitted_at|date:"M d, H:i" }}
+                                                    </span>
+                                                </a>
+                                            </li>
+                                        {% empty %}
+                                            <li style="color: var(--text-secondary);">No submissions yet.</li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p style="color: var(--text-secondary);">No active tasks.</p>
+                {% endif %}
+            </div>
+
+            <!-- Students Column -->
+            {% if is_teacher %}
+                <div>
+                    <h2>Students</h2>
+                    <div class="card glass" style="padding: 1rem; margin-top: 1rem;">
+                        <ul style="list-style: none; padding-left: 0;">
+                            {% for student in course.students.all %}
+                                <li style="margin-bottom: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border-color);">{{ student.get_full_name|default:student.username }}</li>
+                            {% empty %}
+                                <li style="color: var(--text-secondary);">No students enrolled yet.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attendance Section -->
+    <div style="margin-top: 2rem; padding-top: 2rem; border-top: 2px solid var(--border-color);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h2>Attendance 📋</h2>
+            {% if is_teacher %}
+                <a href="{% url 'mark_attendance' course.id %}" class="btn btn-outline" style="font-size: 0.9rem;">Mark Attendance</a>
+            {% endif %}
+        </div>
+
+        {% if attendance_records %}
+            <div class="card glass" style="padding: 1rem; overflow-x: auto;">
+                <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color);">
+                            {% if is_teacher %}
+                                <th style="padding: 1rem; color: var(--text-secondary);">Student Name</th>
+                            {% endif %}
+                            <th style="padding: 1rem; color: var(--text-secondary);">Date</th>
+                            <th style="padding: 1rem; color: var(--text-secondary);">Status</th>
+                            {% if is_teacher %}
+                                <th style="padding: 1rem; color: var(--text-secondary);">Notes</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in attendance_records %}
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                {% if is_teacher %}
+                                    <td style="padding: 1rem;">{{ record.student.get_full_name|default:record.student.username }}</td>
+                                {% endif %}
+                                <td style="padding: 1rem; color: var(--text-secondary);">{{ record.date|date:"M d, Y" }}</td>
+                                <td style="padding: 1rem;">
+                                    {% if record.status == 'present' %}
+                                        <span class="badge badge-success">Present ✓</span>
+                                    {% elif record.status == 'late' %}
+                                        <span class="badge badge-warning">Late ⏰</span>
+                                    {% else %}
+                                        <span class="badge badge-error" style="background: rgba(239, 68, 68, 0.1); color: var(--error);">Absent ✗</span>
+                                    {% endif %}
+                                </td>
+                                {% if is_teacher %}
+                                    <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem; max-width: 150px;">{{ record.notes|truncatechars:30 }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="card glass" style="padding: 2rem; text-align: center;">
+                <p style="color: var(--text-secondary); margin: 0;">
+                    {% if is_teacher %}
+                        No attendance records yet. <a href="{% url 'mark_attendance' course.id %}" style="color: var(--accent-primary); font-weight: 500;">Mark attendance</a> to get started.
+                    {% else %}
+                        No attendance records yet for this subject.
+                    {% endif %}
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

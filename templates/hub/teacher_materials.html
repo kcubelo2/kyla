@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>All Materials & Lessons</h2>
+    <select id="courseFilter" class="form-control" style="width: auto; min-width: 200px;">
+        <option value="all">All Subjects</option>
+        {% for course in courses %}
+        <option value="{{ course.id }}">{{ course.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="grid grid-2">
+    {% if materials %}
+        {% for file in materials %}
+        <div class="card glass item-card" data-course-id="{{ file.course.id }}" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h3 style="margin-bottom: 0.5rem; color: var(--accent-primary);">{{ file.title }}</h3>
+                <span class="badge badge-success">Subject: {{ file.course.name }}</span>
+            </div>
+            <a href="{{ file.file.url }}" class="btn btn-primary" download>Download</a>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-secondary);">No lesson files uploaded.</p>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('courseFilter').addEventListener('change', function() {
+        const courseVal = this.value;
+        document.querySelectorAll('.item-card').forEach(card => {
+            if (courseVal === 'all' || card.getAttribute('data-course-id') === courseVal) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

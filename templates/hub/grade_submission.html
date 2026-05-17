@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 600px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 1rem;">Grade Submission</h2>
+    <p style="color: var(--text-secondary);">Student: {{ submission.student.get_full_name|default:submission.student.username }}</p>
+    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Assignment: {{ submission.assignment.title }}</p>
+    
+    <div style="background: var(--bg-main); padding: 1rem; border-radius: var(--border-radius-sm); margin-bottom: 2rem;">
+        {% if submission.content %}
+            {{ submission.content|linebreaks }}
+        {% else %}
+            <span style="color: var(--text-secondary);">No text content provided.</span>
+        {% endif %}
+        
+        {% if submission.file %}
+            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <p style="color: var(--text-secondary); font-weight: 500; margin-bottom: 0.5rem;">📎 Attached File: <strong>{{ submission.file.name|slice:"-30:" }}</strong></p>
+                <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-primary" style="display: inline-block;">⬇️ Download File</a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label class="form-label">Score (out of {{ submission.assignment.max_score }})</label>
+            <input type="number" name="score" class="form-control" value="{{ submission.score|default_if_none:'' }}" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Letter Grade</label>
+            <select name="letter_grade" class="form-control">
+                <option value="">Select grade</option>
+                <option value="A+" {% if submission.letter_grade == 'A+' %}selected{% endif %}>A+</option>
+                <option value="A" {% if submission.letter_grade == 'A' %}selected{% endif %}>A</option>
+                <option value="A-" {% if submission.letter_grade == 'A-' %}selected{% endif %}>A-</option>
+                <option value="B+" {% if submission.letter_grade == 'B+' %}selected{% endif %}>B+</option>
+                <option value="B" {% if submission.letter_grade == 'B' %}selected{% endif %}>B</option>
+                <option value="B-" {% if submission.letter_grade == 'B-' %}selected{% endif %}>B-</option>
+                <option value="C+" {% if submission.letter_grade == 'C+' %}selected{% endif %}>C+</option>
+                <option value="C" {% if submission.letter_grade == 'C' %}selected{% endif %}>C</option>
+                <option value="C-" {% if submission.letter_grade == 'C-' %}selected{% endif %}>C-</option>
+                <option value="D" {% if submission.letter_grade == 'D' %}selected{% endif %}>D</option>
+                <option value="F" {% if submission.letter_grade == 'F' %}selected{% endif %}>F</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Feedback</label>
+            <textarea name="feedback" class="form-control" rows="4">{{ submission.feedback }}</textarea>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Grade</button>
+            <a href="{% url 'course_detail' submission.assignment.course.id %}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <div>
+        <h2>Student Performance Record</h2>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 0.5rem;">Score sheet for: <strong style="color: var(--accent-primary);">{{ student_user.get_full_name|default:student_user.username }}</strong></p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{% url 'student_grade_report' student_user.id %}" class="btn btn-primary">Quarterly Grade Report</a>
+        <a href="{% url 'teacher_students' %}" class="btn btn-outline">Back to Students</a>
+    </div>
+</div>
+
+{% if report %}
+<div class="card glass" style="padding: 1rem; margin-bottom: 1.5rem;">
+    <h3 style="margin-bottom: 1rem;">Saved Quarterly Grades</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+        <div style="padding: 1rem; background: var(--bg-main); border-radius: 8px;">
+            <strong>Q1</strong>
+            <div>{{ report.quarter_1|default:'-' }}</div>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-main); border-radius: 8px;">
+            <strong>Q2</strong>
+            <div>{{ report.quarter_2|default:'-' }}</div>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-main); border-radius: 8px;">
+            <strong>Q3</strong>
+            <div>{{ report.quarter_3|default:'-' }}</div>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-main); border-radius: 8px;">
+            <strong>Q4</strong>
+            <div>{{ report.quarter_4|default:'-' }}</div>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-main); border-radius: 8px;">
+            <strong>Final Grade</strong>
+            <div>{{ report.final_grade|default:'-' }}</div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="card glass" style="padding: 1rem; overflow-x: auto;">
+    {% if submissions %}
+        <table style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem; color: var(--text-secondary);">Subject</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Task Type</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Task Title</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Submitted At</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Score</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;">{{ sub.assignment.course.name }}</td>
+                    <td style="padding: 1rem;">
+                        <span class="badge badge-primary" style="text-transform: capitalize;">{{ sub.assignment.activity_type }}</span>
+                    </td>
+                    <td style="padding: 1rem; font-weight: 600;">{{ sub.assignment.title }}</td>
+                    <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem;">{{ sub.submitted_at|date:"M d, Y H:i" }}</td>
+                    <td style="padding: 1rem;">
+                        {% if sub.score %}
+                            <strong style="color: var(--success); font-size: 1.1rem;">{{ sub.score }}</strong> / {{ sub.assignment.max_score }}
+                        {% else %}
+                            <span style="color: var(--warning); font-style: italic;">Not graded</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        <a href="{% url 'grade_submission' sub.id %}" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Review</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No submissions found for this student.</p>
+    {% endif %}
+</div>
+{% endblock %}

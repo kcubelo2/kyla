@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Student Hub</h2>
+    <a href="{% url 'join_course' %}" class="btn btn-primary">+ Join Class</a>
+</div>
+
+{% if courses %}
+<div class="grid grid-3">
+    {% for course in courses %}
+    <div class="card glass">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+            <div class="badge badge-primary" style="display: inline-block;">Teacher: {{ course.teacher.get_full_name|default:course.teacher.username }}</div>
+        </div>
+        <h3>{{ course.name }}</h3>
+        <p style="color: var(--text-secondary); height: 40px; overflow: hidden; margin-bottom: 1rem;">
+            {{ course.description }}
+        </p>
+        <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
+        <a href="{% url 'course_detail' course.id %}" class="btn btn-outline" style="width: 100%;">Enter Subject</a>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card glass text-center" style="padding: 4rem;">
+    <h3 style="color: var(--text-secondary);">You haven't joined any subjects yet.</h3>
+    <a href="{% url 'join_course' %}" class="btn btn-primary" style="margin-top: 1rem;">Join Your First Subject</a>
+</div>
+{% endif %}
+{% endblock %}

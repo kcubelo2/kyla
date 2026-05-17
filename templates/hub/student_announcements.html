@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>My Announcements</h2>
+    <select id="courseFilter" class="form-control" style="width: auto; min-width: 200px;">
+        <option value="all">All Subjects</option>
+        {% for course in courses %}
+        <option value="{{ course.id }}">{{ course.name }}</option>
+        {% endfor %}
+    </select>
+</div>
+
+<div class="grid">
+    {% if announcements %}
+        {% for ann in announcements %}
+        <div class="card glass item-card" data-course-id="{{ ann.course.id }}" style="margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between;">
+                <h3 style="margin-bottom: 0.5rem; color: var(--accent-primary);">{{ ann.title }}</h3>
+                <span style="font-size: 0.8rem; color: var(--text-secondary);">{{ ann.created_at|date:"M d, Y" }}</span>
+            </div>
+            <div style="margin-bottom: 1rem;">
+                <span class="badge badge-success">Subject: {{ ann.course.name }}</span>
+            </div>
+            <p>{{ ann.content }}</p>
+        </div>
+        {% endfor %}
+    {% else %}
+        <p style="color: var(--text-secondary);">No announcements yet.</p>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('courseFilter').addEventListener('change', function() {
+        const courseVal = this.value;
+        document.querySelectorAll('.item-card').forEach(card => {
+            if (courseVal === 'all' || card.getAttribute('data-course-id') === courseVal) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

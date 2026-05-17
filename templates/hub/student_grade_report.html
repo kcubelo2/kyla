@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body { background-color: white !important; }
+        .navbar, .sidebar, .navbar-toggle, button, .btn, .form-group, .form-label, .form-control, .file-input, .message, .edit-actions { display: none !important; }
+        .report-card { box-shadow: none !important; border: 1px solid #ccc !important; }
+        .report-title, .report-meta { color: black !important; }
+    }
+    .logo-preview {
+        max-height: 120px;
+        object-fit: contain;
+        margin-bottom: 1rem;
+    }
+    .report-card {
+        background: white;
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.5rem;
+    }
+    .grid-quarters {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+    <div>
+        <h2>{{ report.report_title }}</h2>
+        <p style="color: var(--text-secondary); font-size: 1.05rem; margin-top: 0.5rem;">Edit quarterly grading values, attach a logo, then save and print the report.</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+        <a href="{% url 'print_grade_report' student_user.id %}" class="btn btn-primary">🖨️ Print Preview</a>
+        <a href="{% url 'student_scores' student_user.id %}" class="btn btn-outline">Back to Scores</a>
+    </div>
+</div>
+
+<form method="POST" enctype="multipart/form-data" class="card glass" style="padding: 1.5rem; margin-bottom: 1.5rem;">
+    {% csrf_token %}
+    <div class="form-group">
+        <label class="form-label">Report Title</label>
+        <input type="text" name="report_title" class="form-control" value="{{ report.report_title }}">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Student Name</label>
+        <input type="text" name="display_name" class="form-control" value="{{ report.display_name }}">
+    </div>
+    <div class="grid-quarters" style="margin-bottom: 1rem;">
+        <div class="form-group">
+            <label class="form-label">Quarter 1 Grade</label>
+            <input type="number" step="0.01" name="quarter_1" class="form-control" value="{{ report.quarter_1 }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Quarter 2 Grade</label>
+            <input type="number" step="0.01" name="quarter_2" class="form-control" value="{{ report.quarter_2 }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Quarter 3 Grade</label>
+            <input type="number" step="0.01" name="quarter_3" class="form-control" value="{{ report.quarter_3 }}">
+        </div>
+        <div class="form-group">
+            <label class="form-label">Quarter 4 Grade</label>
+            <input type="number" step="0.01" name="quarter_4" class="form-control" value="{{ report.quarter_4 }}">
+        </div>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Final Grade / Rating</label>
+        <input type="text" name="final_grade" class="form-control" value="{{ report.final_grade }}" placeholder="e.g. 92.5 or A-">
+    </div>
+    <div class="form-group">
+        <label class="form-label">Remarks</label>
+        <textarea name="remarks" class="form-control" rows="4">{{ report.remarks }}</textarea>
+    </div>
+    <div class="form-group">
+        <label class="form-label">Logo Image (Optional)</label>
+        <input type="file" name="logo" class="form-control file-input" accept="image/*">
+        {% if report.logo %}
+            <p style="margin-top: 0.75rem; color: var(--text-secondary);">Current logo:</p>
+            <img src="{{ report.logo.url }}" alt="Grade report logo" class="logo-preview">
+        {% endif %}
+    </div>
+    <div class="edit-actions" style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary">Save Grade Report</button>
+        <a href="{% url 'print_grade_report' student_user.id %}" class="btn btn-outline">Print Preview</a>
+    </div>
+</form>
+
+<div class="report-card">
+    <div style="display: flex; justify-content: space-between; gap: 1rem; align-items: flex-start; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <div>
+            {% if report.logo %}
+                <img src="{{ report.logo.url }}" alt="Logo" class="logo-preview">
+            {% endif %}
+        </div>
+        <div style="flex: 1; min-width: 220px;">
+            <h3 class="report-title" style="margin-bottom: 0.5rem;">{{ report.report_title }}</h3>
+            <p class="report-meta" style="margin: 0.25rem 0;">Student: <strong>{{ report.display_name }}</strong></p>
+            <p class="report-meta" style="margin: 0.25rem 0;">Teacher: <strong>{{ teacher.get_full_name|default:teacher.username }}</strong></p>
+            <p class="report-meta" style="margin: 0.25rem 0;">Academic Year: <strong>{{ current_year.name if current_year else 'N/A' }}</strong></p>
+        </div>
+    </div>
+
+    <div class="grid-quarters" style="margin-bottom: 1.5rem;">
+        <div style="padding: 1rem; background: var(--bg-surface); border-radius: 12px;">
+            <strong>Quarter 1</strong>
+            <p style="font-size: 1.3rem; margin: 0.75rem 0 0;">{{ report.quarter_1|default:'--' }}</p>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-surface); border-radius: 12px;">
+            <strong>Quarter 2</strong>
+            <p style="font-size: 1.3rem; margin: 0.75rem 0 0;">{{ report.quarter_2|default:'--' }}</p>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-surface); border-radius: 12px;">
+            <strong>Quarter 3</strong>
+            <p style="font-size: 1.3rem; margin: 0.75rem 0 0;">{{ report.quarter_3|default:'--' }}</p>
+        </div>
+        <div style="padding: 1rem; background: var(--bg-surface); border-radius: 12px;">
+            <strong>Quarter 4</strong>
+            <p style="font-size: 1.3rem; margin: 0.75rem 0 0;">{{ report.quarter_4|default:'--' }}</p>
+        </div>
+    </div>
+
+    <div style="padding: 1rem; background: var(--bg-surface); border-radius: 12px; margin-bottom: 1.5rem;">
+        <strong>Final Grade</strong>
+        <p style="font-size: 1.5rem; margin: 0.75rem 0 0;">{{ report.final_grade|default:'--' }}</p>
+    </div>
+
+    <div style="padding: 1rem; background: var(--bg-surface); border-radius: 12px;">
+        <strong>Remarks</strong>
+        <p style="margin: 0.75rem 0 0; color: var(--text-secondary);">{{ report.remarks|default:'No additional remarks added.' }}</p>
+    </div>
+</div>
+{% endblock %}

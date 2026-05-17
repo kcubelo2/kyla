@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Teacher Dashboard</h2>
+    <a href="{% url 'create_course' %}" class="btn btn-primary">+ Create Subject</a>
+</div>
+
+{% if courses %}
+<div class="grid grid-3">
+    {% for course in courses %}
+    <div class="card glass">
+        <h3>{{ course.name }}</h3>
+        <p style="color: var(--text-secondary); height: 40px; overflow: hidden; margin-bottom: 1rem;">
+            {{ course.description }}
+        </p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem;">
+            <span class="badge badge-success">Code: {{ course.class_code }}</span>
+            <span class="badge badge-primary">{{ course.students.count }} Students</span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+            <a href="{% url 'course_detail' course.id %}" class="btn btn-outline" style="flex: 1;">View</a>
+            <a href="{% url 'edit_course' course.id %}" class="btn btn-primary" style="flex: 1; text-align: center;">Edit</a>
+            <a href="{% url 'delete_course' course.id %}" class="btn btn-error" style="flex: 1; text-align: center;">Delete</a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="card glass text-center" style="padding: 4rem;">
+    <h3 style="color: var(--text-secondary);">You haven't created any subjects yet.</h3>
+    <a href="{% url 'create_course' %}" class="btn btn-primary" style="margin-top: 1rem;">Create Your First Subject</a>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2>Create Academic Year</h2>
+    <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 0.5rem;">Set up a new academic year for organizing courses and assignments.</p>
+</div>
+
+<div class="card glass" style="max-width: 600px; margin: 0 auto;">
+    <form method="post" style="padding: 2rem;">
+        {% csrf_token %}
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Academic Year Name</label>
+            <input type="text" id="name" name="name" required 
+                   placeholder="e.g., 2024-2025" 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-surface); color: var(--text-primary);">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label for="start_date" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">Start Date</label>
+            <input type="date" id="start_date" name="start_date" required 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-surface); color: var(--text-primary);">
+        </div>
+        
+        <div style="margin-bottom: 1.5rem;">
+            <label for="end_date" style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: var(--text-primary);">End Date</label>
+            <input type="date" id="end_date" name="end_date" required 
+                   style="width: 100%; padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-surface); color: var(--text-primary);">
+        </div>
+        
+        <div style="margin-bottom: 2rem;">
+            <label style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" name="is_active" style="margin-right: 0.5rem;">
+                <span style="font-weight: 600; color: var(--text-primary);">Set as Active Academic Year</span>
+            </label>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem;">Only one academic year can be active at a time. Setting this will deactivate the current active year.</p>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Create Academic Year</button>
+            <a href="{% url 'manage_academic_years' %}" class="btn btn-outline" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

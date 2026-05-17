@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 600px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 2rem;">Create a New Subject</h2>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label class="form-label">Subject Name</label>
+            <input type="text" name="name" class="form-control" placeholder="e.g. Advanced Mathematics" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Description</label>
+            <textarea name="description" class="form-control" rows="4" placeholder="Brief description of the subject..."></textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Academic Year</label>
+            <select name="academic_year" class="form-control">
+                {% if current_year %}
+                    <option value="{{ current_year.id }}" selected>{{ current_year.name }} (Current Active)</option>
+                {% endif %}
+                {% for year in academic_years %}
+                    {% if year != current_year %}
+                        <option value="{{ year.id }}">{{ year.name }}{% if year.is_active %} (Active){% endif %}</option>
+                    {% endif %}
+                {% endfor %}
+            </select>
+            <small style="color: var(--text-secondary); display: block; margin-top: 0.25rem;">Select the academic year for this course. If none selected, the current active year will be used.</small>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Create</button>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

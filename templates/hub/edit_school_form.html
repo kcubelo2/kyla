@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    /* Preview Container Styles */
+    #preview-container {
+        display: none;
+        margin-top: 2rem;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--border-color);
+        min-height: 200px;
+        color: #000; /* Ensure text is readable if app is dark mode */
+    }
+    
+    #preview-container.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .preview-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .preview-header h3 {
+        margin: 0;
+        color: #333;
+    }
+</style>
+<!-- Include TinyMCE -->
+<script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+{% endblock %}
+
+{% block content %}
+<div class="card glass" style="max-width: 800px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 2rem;">Edit {{ form_content.get_form_type_display }} ({{ form_type }})</h2>
+    
+    <form id="school-form" method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label class="form-label">Form Title / Header</label>
+            <input type="text" name="title" class="form-control" value="{{ form_content.title }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label class="form-label">Form Content</label>
+            <!-- TinyMCE Editor -->
+            <textarea id="tinymce-editor" name="content" class="form-control">{{ form_content.content }}</textarea>
+        </div>
+        
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+            <button type="button" id="preview-btn" class="btn btn-outline" style="flex: 1;">Show Preview</button>
+            <a href="{% url 'forms_dashboard' %}" class="btn btn-error" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<!-- In-Page Preview Section -->
+<div id="preview-container" style="max-width: 800px; margin: 2rem auto;">
+    <div class="preview-header">
+        <h3>Form Preview</h3>
+        <button type="button" id="close-preview-btn" class="btn btn-outline" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">Close</button>
+    </div>
+    <h2 id="preview-title" style="text-align: center; margin-bottom: 2rem; color: #000;"></h2>
+    <div id="preview-content"></div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialize TinyMCE
+    tinymce.init({
+        selector: '#tinymce-editor',
+        height: 400,
+        menubar: false,
+        plugins: [
+            'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+            'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+            'insertdatetime', 'media', 'table', 'code', 'help', 'wordcount'
+        ],
+        toolbar: 'undo redo | blocks | ' +
+        'bold italic forecolor | alignleft aligncenter ' +
+        'alignright alignjustify | bullist numlist outdent indent | ' +
+        'table image | removeformat | help',
+        content_style: 'body { font-family:Inter,Helvetica,Arial,sans-serif; font-size:14px }',
+        setup: function(editor) {
+            editor.on('change', function() {
+                tinymce.triggerSave();
+            });
+        }
+    });
+
+    // Handle Preview Button
+    document.addEventListener('DOMContentLoaded', function() {
+        const previewBtn = document.getElementById('preview-btn');
+        const closePreviewBtn = document.getElementById('close-preview-btn');
+        const previewContainer = document.getElementById('preview-container');
+        const previewTitle = document.getElementById('preview-title');
+        const previewContent = document.getElementById('preview-content');
+        
+        previewBtn.addEventListener('click', function() {
+            // Save TinyMCE content to textarea before grabbing it
+            tinymce.triggerSave();
+            
+            // Get values
+            const titleInput = document.querySelector('input[name="title"]').value;
+            const contentTextarea = document.getElementById('tinymce-editor').value;
+            
+            // Update Preview
+            previewTitle.textContent = titleInput;
+            previewContent.innerHTML = contentTextarea;
+            
+            // Show Preview
+            previewContainer.classList.add('active');
+            
+            // Scroll to preview smoothly
+            previewContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+        
+        closePreviewBtn.addEventListener('click', function() {
+            previewContainer.classList.remove('active');
+        });
+    });
+</script>
+{% endblock %}

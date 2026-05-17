@@ -1,0 +1,46 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 600px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 2rem;">Edit Task</h2>
+    
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label class="form-label">Task Title</label>
+            <input type="text" name="title" class="form-control" value="{{ assignment.title }}" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Task Type</label>
+            <select name="activity_type" class="form-control" required>
+                <option value="assignment" {% if assignment.activity_type == 'assignment' %}selected{% endif %}>Assignment</option>
+                <option value="quiz" {% if assignment.activity_type == 'quiz' %}selected{% endif %}>Quiz</option>
+                <option value="activity" {% if assignment.activity_type == 'activity' %}selected{% endif %}>Activity</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Due Date and Time</label>
+            <input type="datetime-local" name="due_date" class="form-control" value="{{ assignment.due_date|date:'Y-m-d\TH:i' }}" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Instructions / Description</label>
+            <textarea name="description" class="form-control" rows="5" required>{{ assignment.description }}</textarea>
+        </div>
+        <div class="form-group">
+            <label class="form-label">Attachment (Leave blank to keep existing)</label>
+            {% if assignment.file %}
+                <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Current file: <a href="{{ assignment.file.url }}" target="_blank">View File</a></p>
+            {% endif %}
+            <input type="file" name="file" class="form-control">
+        </div>
+        <div class="form-group" style="margin-top: 1.5rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(239, 68, 68, 0.1); padding: 1rem; border-radius: 4px;">
+            <input type="checkbox" name="is_closed" id="is_closed" {% if assignment.is_closed %}checked{% endif %}>
+            <label for="is_closed" class="form-label" style="margin: 0; color: var(--error);">Close this task to prevent further submissions</label>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+            <a href="{% url 'course_detail' assignment.course.id %}" class="btn btn-outline">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

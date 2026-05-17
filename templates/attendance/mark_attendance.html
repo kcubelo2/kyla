@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 800px; margin: 2rem auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>Mark Attendance for {{ course.name }}</h2>
+        <a href="{% url 'course_detail' course.id %}" class="btn btn-outline" style="padding: 0.25rem 0.75rem;">Cancel</a>
+    </div>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group" style="margin-bottom: 2rem;">
+            <label class="form-label">Date</label>
+            <input type="text" class="form-control" value="{{ today_date }}" readonly style="width: auto; background: var(--bg-main);">
+            <input type="hidden" name="date" value="{{ today_date }}">
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 2rem;">
+            <tr style="border-bottom: 1px solid var(--border-color); text-align: left;">
+                <th style="padding: 1rem 0;">Student</th>
+                <th style="padding: 1rem 0;">Status</th>
+            </tr>
+            {% for student in students %}
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding: 1rem 0; font-weight: 500;">{{ student.get_full_name|default:student.username }}</td>
+                <td style="padding: 1rem 0;">
+                    <select name="status_{{ student.id }}" class="form-control" style="width: 150px;">
+                        <option value="present">Present</option>
+                        <option value="absent">Absent</option>
+                    </select>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="2" style="padding: 2rem; text-align: center; color: var(--text-secondary);">No students enrolled.</td>
+            </tr>
+            {% endfor %}
+        </table>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%;" {% if not students %}disabled{% endif %}>Save Attendance</button>
+    </form>
+</div>
+{% endblock %}

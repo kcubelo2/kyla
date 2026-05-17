@@ -1,0 +1,100 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Classroom Hub{% endblock %}</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Premium Styles -->
+    <link rel="stylesheet" href="{% static 'css/index.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    {% block body %}
+    <!-- Navbar for Open/Landing views -->
+    <nav class="navbar glass">
+        <div style="display: flex; align-items: center;">
+            {% if user.is_authenticated %}
+            <button id="sidebarToggleBtn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; padding: 0.5rem; margin-left: 1rem; color: var(--text-primary);">☰</button>
+            {% endif %}
+            <a href="{% url 'landing' %}" class="brand" style="margin-left: 1rem;">Classroom Hub</a>
+        </div>
+        <div class="nav-links">
+            {% if user.is_authenticated %}
+                <span style="font-weight: 600; font-size: 1.1rem; letter-spacing: 0.5px;">Hello, {{ user.get_full_name|default:user.username }}</span>
+            {% else %}
+                <a href="{% url 'login' %}" class="btn btn-outline" style="margin-right: 1rem;">Login</a>
+                <a href="{% url 'register' %}" class="btn btn-primary">Sign Up</a>
+            {% endif %}
+        </div>
+    </nav>
+    
+    {% if user.is_authenticated %}
+    <div class="app-container" style="display: flex; min-height: calc(100vh - 72px); overflow-x: hidden;">
+        <aside id="mainSidebar" class="sidebar" style="width: 250px; background-color: var(--bg-surface); padding: 2rem 1rem; border-right: 1px solid var(--border-color); display: flex; flex-direction: column; transition: transform 0.3s ease, width 0.3s ease;">
+            <div style="flex: 1;">
+                <nav style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'student_dashboard' or request.resolver_match.url_name == 'teacher_dashboard' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Subjects</a>
+                    
+                    {% if user.is_teacher %}
+                        <a href="{% url 'teacher_tasks' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher_tasks' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Tasks</a>
+                        <a href="{% url 'teacher_materials' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher_materials' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Materials & Lessons</a>
+                        <a href="{% url 'teacher_students' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher_students' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Students</a>
+                        <a href="{% url 'teacher_announcements' %}" class="nav-link {% if request.resolver_match.url_name == 'teacher_announcements' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Announcements</a>
+                        <a href="{% url 'forms_dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'forms_dashboard' or request.resolver_match.url_name == 'edit_school_form' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">School Forms (SF1-SF8)</a>
+                        <a href="{% url 'manage_academic_years' %}" class="nav-link {% if request.resolver_match.url_name == 'manage_academic_years' or request.resolver_match.url_name == 'create_academic_year' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Academic Years</a>
+                    {% else %}
+                        <a href="{% url 'student_tasks' %}" class="nav-link {% if request.resolver_match.url_name == 'student_tasks' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Tasks</a>
+                        <a href="{% url 'student_materials' %}" class="nav-link {% if request.resolver_match.url_name == 'student_materials' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Materials & Lessons</a>
+                        <a href="{% url 'student_announcements' %}" class="nav-link {% if request.resolver_match.url_name == 'student_announcements' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Announcements</a>
+                        <a href="{% url 'student_scores_view' %}" class="nav-link {% if request.resolver_match.url_name == 'student_scores_view' %}active{% endif %}" style="padding: 1rem; border-radius: 8px; font-weight: 600; text-decoration: none;">Scores</a>
+                    {% endif %}
+                </nav>
+            </div>
+            <div style="border-top: 1px solid var(--border-color); padding-top: 1rem; margin-top: 2rem;">
+                <a href="{% url 'logout' %}" class="btn btn-error" style="width: 100%; text-align: center;">Logout</a>
+            </div>
+        </aside>
+    {% endif %}
+    
+    <main class="main-content {% if not user.is_authenticated %}animate-in{% endif %}" style="{% if user.is_authenticated %}flex: 1;{% endif %} padding: 2rem;">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="badge badge-{% if message.tags %}{{ message.tags }}{% else %}primary{% endif %}" style="margin-bottom: 20px; padding: 10px; border-radius: 8px;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% block content %}{% endblock %}
+    </main>
+
+    {% if user.is_authenticated %}
+    </div>
+    
+    <style>
+        .sidebar.collapsed {
+            transform: translateX(-100%);
+            width: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+    </style>
+    <script>
+        document.getElementById('sidebarToggleBtn').addEventListener('click', function() {
+            document.getElementById('mainSidebar').classList.toggle('collapsed');
+        });
+    </script>
+    {% endif %}
+    {% endblock body %}
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

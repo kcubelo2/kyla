@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 400px; margin: 4rem auto;">
+    <h2 style="text-align: center; margin-bottom: 2rem;">Join a Subject</h2>
+    
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label class="form-label" style="text-align: center;">Enter Subject Code</label>
+            <input type="text" name="code" class="form-control" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.2rem;" placeholder="XXXXXX" required maxlength="10">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Join</button>
+    </form>
+    
+    <div style="text-align: center; margin-top: 1rem;">
+        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary);">Back to Dashboard</a>
+    </div>
+</div>
+{% endblock %}

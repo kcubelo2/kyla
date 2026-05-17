@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 800px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 1rem; color: var(--accent-primary);">{{ assignment.title }}</h2>
+    <p style="font-weight: 500; margin-bottom: 1rem;">Due: {{ assignment.due_date }}</p>
+    
+    <div style="background: var(--bg-main); padding: 1rem; border-radius: var(--border-radius-sm); margin-bottom: 2rem;">
+        {{ assignment.description|linebreaks }}
+    </div>
+    
+    <hr style="border-top: 1px solid var(--border-color); margin-bottom: 2rem;">
+    
+    <h3>Your Submission</h3>
+    
+    {% if assignment.is_closed or submission.score is not None %}
+        <div class="badge badge-warning" style="margin-top: 1rem; padding: 1rem; display: block; text-align: center; font-size: 1rem;">
+            This task is closed or has already been graded. No further edits are allowed.
+        </div>
+        <div style="margin-top: 1.5rem;">
+            {% if submission.content %}
+            <div style="background: var(--bg-main); padding: 1rem; border-radius: var(--border-radius-sm);">
+                {{ submission.content|linebreaks }}
+            </div>
+            {% endif %}
+            {% if submission.file %}
+            <div style="margin-top: 1rem; padding: 1rem; background: var(--bg-main); border-radius: var(--border-radius-sm); border-left: 3px solid var(--accent-primary);">
+                <p style="color: var(--text-secondary); font-weight: 500; margin-bottom: 0.5rem;">📎 Attached File: <strong>{{ submission.file.name|slice:"-30:" }}</strong></p>
+                <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-primary" style="display: inline-block;">⬇️ Download Your Submission</a>
+            </div>
+            {% endif %}
+        </div>
+        <div style="margin-top: 2rem;">
+            <a href="{% url 'course_detail' assignment.course.id %}" class="btn btn-primary">Back to Subject</a>
+        </div>
+    {% else %}
+        <form method="POST" enctype="multipart/form-data" style="margin-top: 1rem;">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="form-label">Text Content (optional if file attached)</label>
+                <textarea name="content" class="form-control" rows="6" placeholder="Write your essay or notes here...">{{ submission.content|default:'' }}</textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Attach File (optional if text provided)</label>
+                {% if submission.file %}
+                    <p style="font-size: 0.9rem; margin-bottom: 0.5rem;">Current file: <a href="{{ submission.file.url }}" target="_blank">View File</a></p>
+                {% endif %}
+                <input type="file" name="file" class="form-control" style="padding: 0.5rem;">
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                <button type="submit" class="btn btn-primary" style="flex: 1;">{% if submission %}Update Submission{% else %}Submit Assignment{% endif %}</button>
+                <a href="{% url 'course_detail' assignment.course.id %}" class="btn btn-outline">Back</a>
+            </div>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

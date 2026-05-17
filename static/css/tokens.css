@@ -1,0 +1,105 @@
+:root {
+  /* DepEd Theme Variables - Light Mode Aesthetic */
+  /* Focus specifically on Palmyra Green and Beige (Light shade) */
+  
+  --bg-main: #FCFAF5; /* Extremely Light Beige for background */
+  --bg-surface: #F5F1E1; /* Beige (Light shade) for cards */
+  --bg-glass: rgba(245, 241, 225, 0.85); /* Beige Glassmorphism */
+  
+  --text-primary: #142E1F; /* Very Dark Green for contrast */
+  --text-secondary: #3B6B50; /* Mid Palmyra Green */
+  
+  --accent-primary: #4C8665; /* Palmyra Green */
+  --accent-primary-hover: #356249;
+  --accent-glow: rgba(76, 134, 101, 0.3);
+  
+  --accent-secondary: #E3F0E6; /* Foam Green used sparingly as accent */
+  
+  --success: #10B981;
+  --error: #EF4444;
+  --warning: #F59E0B;
+  
+  --border-color: rgba(76, 134, 101, 0.2); /* Palmyra tinted border */
+  --border-radius-sm: 8px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 16px;
+  --border-radius-xl: 24px;
+  
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-glow: 0 0 20px rgba(76, 134, 101, 0.2);
+}
+
+/* Base Rest */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a {
+  color: var(--accent-primary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--accent-primary-hover);
+}
+
+button, .btn {
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  transition: all var(--transition-normal);
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+}
+
+/* Typography elements */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--text-primary);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+}
+
+h1 { font-size: 2.5rem; letter-spacing: -0.02em; }
+h2 { font-size: 2rem; letter-spacing: -0.01em; }
+
+/* Micro-animations */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-in {
+  animation: slideUp 0.5s var(--transition-normal) forwards;
+}

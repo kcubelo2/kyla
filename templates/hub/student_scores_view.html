@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        body {
+            background-color: white !important;
+        }
+        .navbar, .sidebar, .navbar-toggle, button:not(.print-button) {
+            display: none !important;
+        }
+        .main-content {
+            padding: 0 !important;
+            flex: 1 !important;
+        }
+        .app-container {
+            display: block !important;
+            min-height: auto !important;
+        }
+        .card {
+            box-shadow: none !important;
+            border: 1px solid #ccc !important;
+            page-break-inside: avoid;
+        }
+        table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+        }
+        th, td {
+            border: 1px solid #ccc !important;
+            padding: 0.75rem !important;
+            text-align: left !important;
+            color: black !important;
+        }
+        th {
+            background-color: #f0f0f0 !important;
+            font-weight: bold !important;
+        }
+        .badge {
+            border: 1px solid #999 !important;
+            background-color: #f9f9f9 !important;
+            color: black !important;
+        }
+        h2 {
+            color: black !important;
+            margin-top: 0 !important;
+        }
+        .print-button {
+            display: none !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+        <h2>My Scores</h2>
+        <p style="color: var(--text-secondary); font-size: 1.1rem; margin-top: 0.5rem;">View all your graded assignments and performance across subjects</p>
+    </div>
+    <button class="btn btn-primary print-button" onclick="window.print()" style="white-space: nowrap;">🖨️ Print Grades</button>
+</div>
+
+<div class="card glass" style="padding: 1rem; overflow-x: auto;">
+    {% if submissions %}
+        <table style="width: 100%; text-align: left; border-collapse: collapse;">
+            <thead>
+                <tr style="border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem; color: var(--text-secondary);">Subject</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Task Type</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Task Title</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Submitted At</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Score</th>
+                    <th style="padding: 1rem; color: var(--text-secondary);">Feedback</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sub in submissions %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;">{{ sub.assignment.course.name }}</td>
+                    <td style="padding: 1rem;">
+                        <span class="badge badge-primary" style="text-transform: capitalize;">{{ sub.assignment.activity_type }}</span>
+                    </td>
+                    <td style="padding: 1rem; font-weight: 600;">{{ sub.assignment.title }}</td>
+                    <td style="padding: 1rem; color: var(--text-secondary); font-size: 0.9rem;">{{ sub.submitted_at|date:"M d, Y H:i" }}</td>
+                    <td style="padding: 1rem;">
+                        {% if sub.score %}
+                            <strong style="color: var(--success); font-size: 1.1rem;">{{ sub.score }}</strong> / {{ sub.assignment.max_score }}
+                        {% else %}
+                            <span style="color: var(--warning); font-style: italic;">Not graded</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem; max-width: 200px;">
+                        {% if sub.feedback %}
+                            <span style="font-size: 0.9rem; color: var(--text-secondary);">{{ sub.feedback|truncatechars:50 }}</span>
+                        {% else %}
+                            <span style="color: var(--text-secondary); font-style: italic;">No feedback</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">You haven't submitted any assignments yet.</p>
+    {% endif %}
+</div>
+{% endblock %}
