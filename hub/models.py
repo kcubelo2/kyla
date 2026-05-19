@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+import os
 import uuid
 import random
 import string
@@ -7,30 +8,12 @@ import string
 def generate_class_code():
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
-
-class AcademicYear(models.Model):
-    name = models.CharField(max_length=20, unique=True, help_text="e.g., 2024-2025")
-    start_date = models.DateField()
-    end_date = models.DateField()
-    is_active = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ['-start_date']
+class Section(models.Model):
+    name = models.CharField(max_length=100)
+    grade_level = models.CharField(max_length=50)
 
     def __str__(self):
-        return self.name
-
-    def save(self, *args, **kwargs):
-        # Ensure only one active academic year at a time
-        if self.is_active:
-            AcademicYear.objects.filter(is_active=True).update(is_active=False)
-        super().save(*args, **kwargs)
-
-    @classmethod
-    def get_current_year(cls):
-        return cls.objects.filter(is_active=True).first() or cls.objects.order_by('-start_date').first()
-
+        return f"{self.grade_level} - {self.name}"
 
 class Course(models.Model):
     name = models.CharField(max_length=200)
@@ -38,11 +21,11 @@ class Course(models.Model):
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='taught_courses')
     students = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='enrolled_courses', blank=True)
     class_code = models.CharField(max_length=10, unique=True, default=generate_class_code)
-    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='courses', null=True, blank=True)
+    section = models.ForeignKey(Section, on_delete=models.SET_NULL, null=True, blank=True, related_name='courses')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.section.name if self.section else 'No Section'})"
 
 class Announcement(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='announcements')
@@ -76,8 +59,12 @@ class Assignment(models.Model):
     file = models.FileField(upload_to='assignments/', blank=True, null=True)
     due_date = models.DateTimeField()
     max_score = models.IntegerField(default=100)
-    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='assignments', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def is_overdue(self):
+        from django.utils import timezone
+        return timezone.now() > self.due_date
 
     def __str__(self):
         return self.title
@@ -109,7 +96,6 @@ class Submission(models.Model):
 class GradeReport(models.Model):
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='grade_reports')
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='created_grade_reports')
-    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, related_name='grade_reports', null=True, blank=True)
     report_title = models.CharField(max_length=200, default='Quarterly Grade Report')
     display_name = models.CharField(max_length=200, blank=True)
     quarter_1 = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
@@ -123,7 +109,7 @@ class GradeReport(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('student', 'teacher', 'academic_year')
+        unique_together = ('student', 'teacher')
 
     def __str__(self):
         student_name = self.student.get_full_name() or self.student.username
@@ -162,17 +148,24 @@ class SchoolFormContent(models.Model):
         ('SF6', 'Summarized Report on Promotion'),
         ('SF7', 'School Personnel Assignment'),
         ('SF8', 'Learner Basic Health Profile'),
+        ('SF9', "Learner's Progress Report Card"),
+        ('SF10JHS', 'SF 10 JHS Permanent Academic Record'),
+        ('SF10SHS', 'SF 10 SHS Permanent Academic Record'),
     ]
-    form_type = models.CharField(max_length=3, choices=FORM_TYPES)
+    form_type = models.CharField(max_length=10, choices=FORM_TYPES)
     title = models.CharField(max_length=200, blank=True)
-    content = models.TextField(help_text="Rich text content of the form")
+    content = models.TextField(help_text="Rich text content of the form", blank=True)
+    file = models.FileField(upload_to='school_forms/', blank=True, null=True)
     teacher = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='school_forms')
-    academic_year = models.ForeignKey(AcademicYear, on_delete=models.CASCADE, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('form_type', 'teacher', 'academic_year')
+        unique_together = ('form_type', 'teacher')
 
     def __str__(self):
         return f"{self.get_form_type_display()} - {self.teacher.username}"
+
+    @property
+    def file_name(self):
+        return os.path.basename(self.file.name) if self.file else ''

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Student Profile{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;">
+    <h2>Student Profile</h2>
+    <a href="{% url 'student_dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
+</div>
+
+<div class="grid grid-2" style="gap: 1.5rem;">
+    <div class="card glass" style="padding: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;">Profile Photo</h3>
+        <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1rem;">
+            {% if profile.profile_photo %}
+                <img src="{{ profile.profile_photo.url }}" alt="Profile Photo" style="width: 180px; height: 180px; object-fit: cover; border-radius: 18px; border: 1px solid var(--border-color);" />
+            {% else %}
+                <div style="width: 180px; height: 180px; display: grid; place-items: center; border-radius: 18px; background: rgba(255,255,255,0.15); border: 1px dashed var(--border-color); color: var(--text-secondary);">
+                    No photo yet
+                </div>
+            {% endif %}
+        </div>
+
+        <form method="post" enctype="multipart/form-data" style="display: grid; gap: 1rem;">
+            {% csrf_token %}
+            <label class="form-label">Upload new profile photo</label>
+            <input type="file" name="profile_photo" accept="image/*" class="form-control file-input">
+            <button type="submit" class="btn btn-primary">Save Photo</button>
+        </form>
+    </div>
+
+    <div class="card glass" style="padding: 1.5rem;">
+        <h3 style="margin-bottom: 1rem;">Account Details</h3>
+        <div style="display: grid; gap: 0.75rem;">
+            <div><strong>Username:</strong> {{ request.user.username }}</div>
+            <div><strong>Full name:</strong> {{ request.user.get_full_name|default:'Not provided' }}</div>
+            <div><strong>Email:</strong> {{ request.user.email|default:'Not provided' }}</div>
+            <div><strong>Student ID:</strong> {{ profile.student_id|default:'Not set' }}</div>
+            <div><strong>Notes:</strong> {{ profile.overall_notes|default:'No notes yet' }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card glass" style="margin-top: 2rem; padding: 1.5rem;">
+    <h3 style="margin-bottom: 1rem;">Enrollment / Registration Data</h3>
+    {% if application %}
+        <div style="display: grid; gap: 0.75rem;">
+            <div><strong>Status:</strong> {{ application.get_status_display }}</div>
+            <div><strong>First name:</strong> {{ application.first_name }}</div>
+            <div><strong>Last name:</strong> {{ application.last_name }}</div>
+            <div><strong>Date of birth:</strong> {{ application.date_of_birth }}</div>
+            <div><strong>Gender:</strong> {{ application.get_gender_display }}</div>
+            <div><strong>Address:</strong> {{ application.address }}</div>
+            <div><strong>Contact number:</strong> {{ application.contact_number }}</div>
+            <div><strong>Email:</strong> {{ application.email }}</div>
+            <div><strong>Grade level:</strong> {{ application.grade_level }}</div>
+            <div><strong>Previous school:</strong> {{ application.previous_school|default:'Not provided' }}</div>
+            <div><strong>Application submitted:</strong> {{ application.created_at|date:'F j, Y' }}</div>
+        </div>
+    {% else %}
+        <p style="color: var(--text-secondary);">No enrollment record found yet. This page will display the registration data you entered when you signed up as a student.</p>
+    {% endif %}
+</div>
+{% endblock %}

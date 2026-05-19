@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto;">
+    <div class="card glass" style="padding: 2rem; text-align: center;">
+        <h2 style="margin-bottom: 1.5rem; color: var(--primary);">Enrollment Status</h2>
+        
+        {% if application %}
+            <div style="margin-bottom: 2rem;">
+                <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">Hello, <strong>{{ application.first_name }} {{ application.last_name }}</strong>!</p>
+                <p style="color: var(--text-secondary);">Your application for <strong>{{ application.grade_level }}</strong> is currently:</p>
+            </div>
+
+            <div style="margin-bottom: 2rem;">
+                {% if application.status == 'pending' %}
+                    <span class="badge" style="background: #f59e0b; color: #000; font-size: 1.5rem; padding: 0.75rem 1.5rem; border-radius: 2rem;">Pending</span>
+                    <p style="color: var(--text-secondary); margin-top: 1rem;">We are reviewing your application. Please check back later.</p>
+                {% elif application.status == 'approved' %}
+                    <span class="badge" style="background: #10b981; color: #fff; font-size: 1.5rem; padding: 0.75rem 1.5rem; border-radius: 2rem;">Approved</span>
+                    <p style="color: var(--text-secondary); margin-top: 1rem;">Congratulations! Your enrollment has been approved.</p>
+                {% elif application.status == 'rejected' %}
+                    <span class="badge" style="background: #ef4444; color: #fff; font-size: 1.5rem; padding: 0.75rem 1.5rem; border-radius: 2rem;">Rejected</span>
+                    <p style="color: var(--text-secondary); margin-top: 1rem;">Unfortunately, your application was not approved. Please contact the administration.</p>
+                {% endif %}
+            </div>
+
+            <div style="text-align: left; background: var(--bg-secondary); padding: 1.5rem; border-radius: 0.5rem; border: 1px solid var(--border-color);">
+                <h4 style="margin-bottom: 1rem;">Application Details:</h4>
+                <p><strong>Submitted on:</strong> {{ application.created_at|date:"F j, Y" }}</p>
+                <p><strong>Grade Level:</strong> {{ application.grade_level }}</p>
+                <p><strong>Documents Uploaded:</strong> {{ application.documents.count }}</p>
+            </div>
+        {% else %}
+            <div style="margin-bottom: 2rem;">
+                <p style="color: var(--text-secondary);">You have not submitted an enrollment application yet.</p>
+            </div>
+            <a href="{% url 'apply_enrollment' %}" class="btn btn-primary">Apply Now</a>
+        {% endif %}
+        
+        <div style="margin-top: 2rem;">
+            <a href="{% url 'dashboard' %}" class="btn btn-outline">Back to Dashboard</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

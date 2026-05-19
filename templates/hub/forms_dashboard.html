@@ -2,7 +2,8 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>School Forms (SF1 - SF8)</h2>
+    <h2>School Forms</h2>
+    <a href="{% url 'create_custom_form' %}" class="btn btn-primary">Add Custom Form</a>
 </div>
 
 <div class="grid grid-4" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
@@ -18,8 +19,20 @@
                 {{ form.description }}
             </p>
         </div>
-        <div style="margin-top: auto;">
-            <a href="{% url 'edit_school_form' form.id %}" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Edit Form</a>
+        <div style="margin-top: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+            <a href="{% url 'edit_school_form' form.type_code %}" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">View / Edit</a>
+            {% if form.has_file %}
+            <a href="{% url 'download_school_form' form.record.id %}" class="btn btn-outline" style="width: 100%; text-align: center; display: block;">Download File</a>
+            <a href="{{ form.file_url }}" target="_blank" class="btn btn-outline" style="width: 100%; text-align: center; display: block;">View File</a>
+            {% else %}
+            <button disabled class="btn btn-outline" style="width: 100%; text-align: center; display: block;">No file attached</button>
+            {% endif %}
+            {% if form.record %}
+            <form method="POST" action="{% url 'delete_school_form' form.record.id %}" style="margin:0;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error" style="width: 100%; text-align: center;">Delete Form</button>
+            </form>
+            {% endif %}
         </div>
     </div>
     {% endfor %}

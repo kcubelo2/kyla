@@ -27,6 +27,13 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.ngrok-free.dev',
+    'https://*.ngrok.io',
+    'http://*.ngrok-free.dev',
+    'http://*.ngrok.io',
+]
+
 
 # Application definition
 
@@ -41,6 +48,7 @@ INSTALLED_APPS = [
     'accounts',
     'hub',
     'attendance',
+    'enrollment',
 ]
 
 MIDDLEWARE = [

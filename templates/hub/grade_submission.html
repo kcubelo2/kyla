@@ -1,57 +1,384 @@
 {% extends 'base.html' %}
 
+{% block title %}Grade Submission – {{ submission.assignment.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .grade-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 2rem;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .grade-layout { grid-template-columns: 1fr; }
+  }
+
+  /* File Preview Panel */
+  .preview-panel {
+    position: sticky;
+    top: 1rem;
+  }
+  .preview-frame {
+    width: 100%;
+    height: 72vh;
+    border: none;
+    border-radius: 10px;
+    background: #1a1a2e;
+  }
+  .preview-img {
+    width: 100%;
+    max-height: 72vh;
+    object-fit: contain;
+    border-radius: 10px;
+    background: #1a1a2e;
+  }
+  .preview-unsupported {
+    height: 72vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    border: 2px dashed var(--border-color);
+    gap: 1rem;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  /* File type badge */
+  .file-type-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(99,102,241,0.15);
+    color: var(--accent-primary);
+    border-radius: 6px;
+    padding: 0.3rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: monospace;
+    text-transform: uppercase;
+  }
+
+  /* Grading form */
+  .grade-card {
+    position: sticky;
+    top: 1rem;
+  }
+  .score-input {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    padding: 0.75rem;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .score-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+  .grade-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .grade-select:focus { outline: none; border-color: var(--accent-primary); }
+  .feedback-area {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+  }
+  .feedback-area:focus { outline: none; border-color: var(--accent-primary); }
+
+  /* Student content box */
+  .content-box {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    max-height: 150px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card glass" style="max-width: 600px; margin: 2rem auto;">
-    <h2 style="margin-bottom: 1rem;">Grade Submission</h2>
-    <p style="color: var(--text-secondary);">Student: {{ submission.student.get_full_name|default:submission.student.username }}</p>
-    <p style="color: var(--text-secondary); margin-bottom: 2rem;">Assignment: {{ submission.assignment.title }}</p>
-    
-    <div style="background: var(--bg-main); padding: 1rem; border-radius: var(--border-radius-sm); margin-bottom: 2rem;">
-        {% if submission.content %}
-            {{ submission.content|linebreaks }}
-        {% else %}
-            <span style="color: var(--text-secondary);">No text content provided.</span>
-        {% endif %}
-        
-        {% if submission.file %}
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
-                <p style="color: var(--text-secondary); font-weight: 500; margin-bottom: 0.5rem;">📎 Attached File: <strong>{{ submission.file.name|slice:"-30:" }}</strong></p>
-                <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-primary" style="display: inline-block;">⬇️ Download File</a>
-            </div>
-        {% endif %}
-    </div>
-    
-    <form method="POST">
-        {% csrf_token %}
-        <div class="form-group">
-            <label class="form-label">Score (out of {{ submission.assignment.max_score }})</label>
-            <input type="number" name="score" class="form-control" value="{{ submission.score|default_if_none:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label class="form-label">Letter Grade</label>
-            <select name="letter_grade" class="form-control">
-                <option value="">Select grade</option>
-                <option value="A+" {% if submission.letter_grade == 'A+' %}selected{% endif %}>A+</option>
-                <option value="A" {% if submission.letter_grade == 'A' %}selected{% endif %}>A</option>
-                <option value="A-" {% if submission.letter_grade == 'A-' %}selected{% endif %}>A-</option>
-                <option value="B+" {% if submission.letter_grade == 'B+' %}selected{% endif %}>B+</option>
-                <option value="B" {% if submission.letter_grade == 'B' %}selected{% endif %}>B</option>
-                <option value="B-" {% if submission.letter_grade == 'B-' %}selected{% endif %}>B-</option>
-                <option value="C+" {% if submission.letter_grade == 'C+' %}selected{% endif %}>C+</option>
-                <option value="C" {% if submission.letter_grade == 'C' %}selected{% endif %}>C</option>
-                <option value="C-" {% if submission.letter_grade == 'C-' %}selected{% endif %}>C-</option>
-                <option value="D" {% if submission.letter_grade == 'D' %}selected{% endif %}>D</option>
-                <option value="F" {% if submission.letter_grade == 'F' %}selected{% endif %}>F</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label class="form-label">Feedback</label>
-            <textarea name="feedback" class="form-control" rows="4">{{ submission.feedback }}</textarea>
-        </div>
-        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
-            <button type="submit" class="btn btn-primary" style="flex: 1;">Save Grade</button>
-            <a href="{% url 'course_detail' submission.assignment.course.id %}" class="btn btn-outline">Cancel</a>
-        </div>
-    </form>
+
+<!-- Header -->
+<div style="margin-bottom: 1.5rem;">
+  <a href="{% url 'course_detail' submission.assignment.course.id %}" class="btn btn-secondary" style="font-size: 0.85rem;">← Back to {{ submission.assignment.course.name }}</a>
 </div>
+
+<div style="margin-bottom: 1.5rem; display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2 style="margin: 0 0 0.25rem;">Grade Submission</h2>
+    <p style="color: var(--text-secondary); margin: 0;">
+      <strong style="color: var(--text-primary);">{{ submission.student.get_full_name|default:submission.student.username }}</strong>
+      &nbsp;·&nbsp; {{ submission.assignment.title }}
+      &nbsp;·&nbsp; Submitted {{ submission.submitted_at|date:"M d, Y H:i" }}
+    </p>
+  </div>
+  {% if submission.score is not None %}
+  <div class="badge badge-success" style="font-size: 1rem; padding: 0.5rem 1.25rem; align-self: center;">
+    Already Graded: {{ submission.score }}/{{ submission.assignment.max_score }}
+  </div>
+  {% endif %}
+</div>
+
+<div class="grade-layout">
+
+  <!-- LEFT: File Preview -->
+  <div class="preview-panel">
+    {% if submission.file %}
+      {% with fname=submission.file.name|lower %}
+
+      <!-- Determine extension -->
+      {% if fname|slice:"-4:" == ".pdf" %}
+        <!-- PDF Preview -->
+        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <span class="file-type-badge">📄 PDF</span>
+          <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;">⬇️ Download</a>
+        </div>
+        <iframe
+          class="preview-frame"
+          src="{% url 'preview_submission_file' submission.id %}#toolbar=1&view=FitH"
+          title="PDF Preview">
+        </iframe>
+
+      {% elif fname|slice:"-4:" == ".jpg" or fname|slice:"-4:" == ".png" or fname|slice:"-4:" == ".gif" or fname|slice:"-5:" == ".jpeg" or fname|slice:"-5:" == ".webp" %}
+        <!-- Image Preview -->
+        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <span class="file-type-badge">🖼️ Image</span>
+          <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;">⬇️ Download</a>
+        </div>
+        <div style="background: rgba(0,0,0,0.3); border-radius: 10px; display: flex; align-items: center; justify-content: center; min-height: 400px;">
+          <img
+            class="preview-img"
+            src="{% url 'preview_submission_file' submission.id %}"
+            alt="Submitted image"
+            style="max-height: 72vh;"
+          >
+        </div>
+
+      {% elif fname|slice:"-4:" == ".txt" or fname|slice:"-4:" == ".csv" or fname|slice:"-3:" == ".md" %}
+        <!-- Text file Preview -->
+        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <span class="file-type-badge">📝 Text File</span>
+          <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;">⬇️ Download</a>
+        </div>
+        <iframe
+          class="preview-frame"
+          src="{% url 'preview_submission_file' submission.id %}"
+          title="Text Preview"
+          style="background: #1e1e2e; font-family: monospace;">
+        </iframe>
+
+      {% elif fname|slice:"-5:" == ".docx" %}
+        <!-- Native DOCX Preview using Mammoth -->
+        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          <span class="file-type-badge">📝 Word Document</span>
+          <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;">⬇️ Download</a>
+        </div>
+        <iframe
+          class="preview-frame"
+          src="{% url 'preview_submission_file' submission.id %}"
+          title="Word Document Preview"
+          style="background: #ffffff;">
+        </iframe>
+
+      {% elif fname|slice:"-4:" == ".doc" or fname|slice:"-5:" == ".xlsx" or fname|slice:"-4:" == ".xls" or fname|slice:"-5:" == ".pptx" or fname|slice:"-4:" == ".ppt" %}
+        <!-- Office documents via Google Docs Viewer -->
+        <div style="margin-bottom: 0.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+          {% if fname|slice:"-4:" == ".doc" %}
+            <span class="file-type-badge">📝 Word Document (Old)</span>
+          {% elif fname|slice:"-5:" == ".xlsx" or fname|slice:"-4:" == ".xls" %}
+            <span class="file-type-badge">📊 Spreadsheet</span>
+          {% else %}
+            <span class="file-type-badge">📊 Presentation</span>
+          {% endif %}
+          <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.3rem 0.75rem;">⬇️ Download</a>
+        </div>
+        <!-- Google Docs Viewer needs a public URL; use preview_submission_file absolute URL -->
+        <iframe
+          id="docsViewerFrame"
+          class="preview-frame"
+          src=""
+          title="Document Preview">
+        </iframe>
+        <p style="color: var(--text-secondary); font-size: 0.8rem; margin-top: 0.5rem; text-align: center;">
+          Preview powered by Google Docs Viewer. If it doesn't load, <a href="{% url 'download_submission_file' submission.id %}" style="color: var(--accent-primary);">download the file</a>.
+        </p>
+        <script>
+          // Build Google Docs Viewer URL using absolute file URL
+          const fileUrl = encodeURIComponent(window.location.origin + '{% url "preview_submission_file" submission.id %}?token={{ preview_token }}');
+          document.getElementById('docsViewerFrame').src = 'https://docs.google.com/viewer?url=' + fileUrl + '&embedded=true';
+        </script>
+
+      {% else %}
+        <!-- Unsupported / Unknown file type -->
+        <div class="preview-unsupported">
+          <span style="font-size: 4rem;">📦</span>
+          <div>
+            <p style="font-weight: 600; margin: 0 0 0.5rem;">Preview not available</p>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0 0 1.5rem;">
+              File type <strong>{{ submission.file.name|slice:"-10:" }}</strong> cannot be previewed in the browser.
+            </p>
+            <a href="{% url 'download_submission_file' submission.id %}" class="btn btn-primary">⬇️ Download to View</a>
+          </div>
+        </div>
+      {% endif %}
+
+      {% endwith %}
+
+    {% else %}
+      <!-- No file attached -->
+      <div class="card glass" style="padding: 1.5rem;">
+        <h3 style="margin: 0 0 1rem;">📝 Text Submission</h3>
+        {% if submission.content %}
+          <div class="content-box">{{ submission.content }}</div>
+        {% else %}
+          <p style="color: var(--text-secondary);">No content or file submitted.</p>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <!-- Show text content below file if both exist -->
+    {% if submission.file and submission.content %}
+    <div class="card glass" style="margin-top: 1rem; padding: 1rem;">
+      <p style="font-weight: 600; margin: 0 0 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">📝 Written Notes</p>
+      <div class="content-box">{{ submission.content }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT: Grading Form -->
+  <div class="grade-card">
+    <div class="card glass" style="padding: 1.5rem;">
+      <h3 style="margin: 0 0 1.25rem; font-size: 1.1rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.75rem;">⭐ Grade This Submission</h3>
+
+      <form method="POST">
+        {% csrf_token %}
+
+        <!-- Score -->
+        <div style="margin-bottom: 1.25rem;">
+          <label style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">
+            Score <span style="font-weight: 400;">(out of {{ submission.assignment.max_score }})</span>
+          </label>
+          <input
+            type="number"
+            name="score"
+            class="score-input"
+            value="{{ submission.score|default_if_none:'' }}"
+            min="0"
+            max="{{ submission.assignment.max_score }}"
+            placeholder="—"
+            oninput="updateScoreBar(this.value)"
+            required
+          >
+          <!-- Score bar -->
+          <div style="margin-top: 0.5rem; background: rgba(255,255,255,0.08); border-radius: 4px; height: 6px; overflow: hidden;">
+            <div id="scoreBar" style="height: 100%; background: var(--accent-primary); border-radius: 4px; width: {% if submission.score %}{{ submission.score|floatformat:0 }}{% else %}0{% endif %}%; transition: width 0.3s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Letter Grade -->
+        <div style="margin-bottom: 1.25rem;">
+          <label style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Letter Grade</label>
+          <select name="letter_grade" class="grade-select">
+            <option value="">— Select —</option>
+            {% for val, label in submission.GRADE_CHOICES %}
+            <option value="{{ val }}" {% if submission.letter_grade == val %}selected{% endif %}>{{ val }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Feedback -->
+        <div style="margin-bottom: 1.5rem;">
+          <label style="display: block; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.05em;">Feedback / Comments</label>
+          <textarea name="feedback" class="feedback-area" rows="5" placeholder="Write your feedback here…">{{ submission.feedback }}</textarea>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
+          💾 Save Grade
+        </button>
+        <a href="{% url 'course_detail' submission.assignment.course.id %}" class="btn btn-outline" style="width: 100%; margin-top: 0.75rem; text-align: center; display: block;">
+          Cancel
+        </a>
+      </form>
+    </div>
+
+    <!-- Quick Info Card -->
+    <div class="card glass" style="padding: 1rem; margin-top: 1rem;">
+      <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;">Submission Info</p>
+      <div style="display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.9rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-secondary);">Student</span>
+          <span style="font-weight: 600;">{{ submission.student.get_full_name|default:submission.student.username }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-secondary);">Task Type</span>
+          <span class="badge badge-primary" style="font-size: 0.75rem; text-transform: capitalize;">{{ submission.assignment.activity_type }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-secondary);">Max Score</span>
+          <span>{{ submission.assignment.max_score }}</span>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: var(--text-secondary);">Submitted</span>
+          <span>{{ submission.submitted_at|date:"M d, H:i" }}</span>
+        </div>
+        {% if submission.file %}
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="color: var(--text-secondary);">File</span>
+          <a href="{% url 'download_submission_file' submission.id %}" style="color: var(--accent-primary); font-size: 0.85rem;">⬇️ Download</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const maxScore = {{ submission.assignment.max_score }};
+
+  function updateScoreBar(val) {
+    const pct = Math.min(Math.max((parseFloat(val) / maxScore) * 100, 0), 100);
+    const bar = document.getElementById('scoreBar');
+    if (bar) {
+      bar.style.width = pct + '%';
+      if (pct >= 75) bar.style.background = 'var(--success)';
+      else if (pct >= 50) bar.style.background = 'var(--warning)';
+      else bar.style.background = 'var(--error)';
+    }
+  }
+
+  // Initialize bar on load
+  const scoreInput = document.querySelector('input[name="score"]');
+  if (scoreInput && scoreInput.value) updateScoreBar(scoreInput.value);
+</script>
 {% endblock %}

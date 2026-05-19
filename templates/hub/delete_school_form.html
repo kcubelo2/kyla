@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="card glass" style="max-width: 700px; margin: 2rem auto; padding: 2rem;">
+    <h2 style="margin-bottom: 1rem; color: var(--error);">Delete Form</h2>
+    <p style="margin-bottom: 2rem;">Are you sure you want to delete <strong>{{ form_content.get_form_type_display }}</strong>?</p>
+    <p style="margin-bottom: 2rem; color: var(--text-secondary);">This will remove the form and any attached file from the system.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" class="btn btn-error" style="flex: 1;">Yes, Delete</button>
+            <a href="{% url 'forms_dashboard' %}" class="btn btn-outline" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

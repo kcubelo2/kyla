@@ -45,9 +45,9 @@
 
 {% block content %}
 <div class="card glass" style="max-width: 800px; margin: 2rem auto;">
-    <h2 style="margin-bottom: 2rem;">Edit {{ form_content.get_form_type_display }} ({{ form_type }})</h2>
+    <h2 style="margin-bottom: 2rem;">Edit {% if is_custom %}Custom Form{% else %}{{ form_content.get_form_type_display }}{% endif %} ({{ form_type }})</h2>
     
-    <form id="school-form" method="POST">
+    <form id="school-form" method="POST" enctype="multipart/form-data">
         {% csrf_token %}
         <div class="form-group">
             <label class="form-label">Form Title / Header</label>
@@ -58,6 +58,32 @@
             <label class="form-label">Form Content</label>
             <!-- TinyMCE Editor -->
             <textarea id="tinymce-editor" name="content" class="form-control">{{ form_content.content }}</textarea>
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Current Attached File</label>
+            {% if form_content.file %}
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; margin-bottom: 1rem;">
+                <p style="margin: 0;">
+                    <strong>{{ form_content.file_name }}</strong><br>
+                    <a href="{{ form_content.file.url }}" target="_blank" class="btn btn-outline" style="margin-top: 0.5rem; display: inline-block;">View Attached File</a>
+                    <a href="{{ form_content.file.url }}" download class="btn btn-primary" style="margin-top: 0.5rem; display: inline-block; margin-left: 0.75rem;">Download Attached File</a>
+                </p>
+                <label style="display: block; margin-top: 0.75rem;">
+                    <input type="checkbox" name="remove_file" value="1"> Remove existing file
+                </label>
+            </div>
+            {% else %}
+            <div style="padding: 1rem; background: var(--bg-secondary); border-radius: 0.5rem; margin-bottom: 1rem; color: var(--text-secondary);">
+                No file attached yet.
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-group" style="margin-top: 1rem;">
+            <label class="form-label">Replace / Upload File</label>
+            <input type="file" name="file" class="form-control" accept=".pdf,.xlsx,.xls,.doc,.docx">
+            <small style="color: var(--text-secondary);">Upload a new PDF or Excel/Word file for this school form.</small>
         </div>
         
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">

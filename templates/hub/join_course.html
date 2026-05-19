@@ -1,20 +1,87 @@
 {% extends 'base.html' %}
 
+{% block title %}Join a Subject – Classroom Hub{% endblock %}
+
+{% block extra_css %}
+<style>
+  .code-input {
+    text-align: center;
+    font-size: 2rem;
+    letter-spacing: 0.4rem;
+    font-weight: 700;
+    font-family: monospace;
+    background: rgba(255,255,255,0.05);
+    border: 2px solid var(--border-color);
+    border-radius: 10px;
+    color: var(--text-primary);
+    padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+    text-transform: uppercase;
+  }
+  .code-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card glass" style="max-width: 400px; margin: 4rem auto;">
-    <h2 style="text-align: center; margin-bottom: 2rem;">Join a Subject</h2>
-    
-    <form method="POST">
-        {% csrf_token %}
-        <div class="form-group">
-            <label class="form-label" style="text-align: center;">Enter Subject Code</label>
-            <input type="text" name="code" class="form-control" style="text-align: center; font-size: 1.5rem; letter-spacing: 0.2rem;" placeholder="XXXXXX" required maxlength="10">
-        </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Join</button>
-    </form>
-    
-    <div style="text-align: center; margin-top: 1rem;">
-        <a href="{% url 'dashboard' %}" style="color: var(--text-secondary);">Back to Dashboard</a>
+<div class="card glass" style="max-width: 460px; margin: 4rem auto; padding: 2.5rem;">
+  <div style="text-align: center; margin-bottom: 2rem;">
+    <div style="font-size: 3rem; margin-bottom: 0.75rem;">📚</div>
+    <h2 style="margin: 0 0 0.5rem;">Join a Subject</h2>
+    <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">
+      {% if prefill_code %}
+        You've been invited! Confirm below to join.
+      {% else %}
+        Enter the class code given by your teacher.
+      {% endif %}
+    </p>
+  </div>
+
+  <form method="POST" id="joinForm">
+    {% csrf_token %}
+    <div class="form-group" style="margin-bottom: 1.5rem;">
+      <label class="form-label" style="text-align: center; display: block; margin-bottom: 0.75rem; color: var(--text-secondary); font-size: 0.9rem;">CLASS CODE</label>
+      <input
+        type="text"
+        name="code"
+        id="codeInput"
+        class="code-input"
+        placeholder="XXXXXX"
+        required
+        maxlength="10"
+        value="{{ prefill_code }}"
+        oninput="this.value = this.value.toUpperCase()"
+      >
     </div>
+    <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.85rem; font-size: 1rem;">
+      {% if prefill_code %}✅ Join Subject{% else %}Join Subject{% endif %}
+    </button>
+  </form>
+
+  <div style="text-align: center; margin-top: 1.5rem;">
+    <a href="{% url 'dashboard' %}" style="color: var(--text-secondary); font-size: 0.9rem;">← Back to Dashboard</a>
+  </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+{% if prefill_code %}
+<script>
+  // If code is pre-filled from invite link, auto-submit after a short delay so user can see it
+  window.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('codeInput');
+    input.focus();
+    // Highlight the code briefly then auto-submit
+    input.style.borderColor = 'var(--accent-primary)';
+    input.style.background = 'rgba(99, 102, 241, 0.1)';
+    setTimeout(function() {
+      document.getElementById('joinForm').submit();
+    }, 800);
+  });
+</script>
+{% endif %}
 {% endblock %}

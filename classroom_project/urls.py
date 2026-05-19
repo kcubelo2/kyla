@@ -16,7 +16,17 @@ urlpatterns = [
     # Dashboard dispatcher (Teacher or Student)
     path('dashboard/', account_views.dashboard_view, name='dashboard'),
     
+    # Student Profile
+    path('profile/', account_views.student_profile_view, name='student_profile'),
+    
     # App URLs
     path('hub/', include('hub.urls')),
     path('attendance/', include('attendance.urls')),
+    path('enrollment/', include('enrollment.urls')),
 ]
+
+from django.conf import settings
+from django.conf.urls.static import static
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -1,0 +1,301 @@
+{% extends 'base.html' %}
+
+{% block title %}Bulk Invite – {{ course.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .student-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .student-row:hover {
+    background: rgba(255,255,255,0.06);
+  }
+  .student-row input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .student-row label {
+    cursor: pointer;
+    flex: 1;
+  }
+  .invite-link-box {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+  }
+  .invite-link-box input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-family: monospace;
+    outline: none;
+  }
+  .copy-btn {
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--accent-primary);
+    color: #fff;
+    border: none;
+    transition: opacity 0.2s;
+    white-space: nowrap;
+  }
+  .copy-btn:hover { opacity: 0.85; }
+  #searchInput {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: rgba(255,255,255,0.05);
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    outline: none;
+    box-sizing: border-box;
+  }
+  #searchInput:focus {
+    border-color: var(--accent-primary);
+  }
+  .tab-btn {
+    padding: 0.5rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+  .tab-btn.active {
+    background: var(--accent-primary);
+    color: #fff;
+    border-color: var(--accent-primary);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1rem;">
+  <a href="{% url 'course_detail' course.id %}" class="btn btn-secondary" style="font-size: 0.9rem;">← Back to {{ course.name }}</a>
+</div>
+
+<div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+  <div>
+    <h2 style="margin: 0;">Invite Students</h2>
+    <p style="color: var(--text-secondary); margin: 0.25rem 0 0;">{{ course.name }} &mdash; Add students to this subject</p>
+  </div>
+  <div class="badge badge-primary" style="font-size: 1rem; padding: 0.5rem 1.25rem; align-self: center;">
+    {{ enrolled_students.count }} enrolled
+  </div>
+</div>
+
+<!-- Invite Link Card -->
+<div class="card glass" style="margin-bottom: 2rem;">
+  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+    <span style="font-size: 1.5rem;">🔗</span>
+    <div>
+      <h3 style="margin: 0; font-size: 1.1rem;">Shareable Invite Link</h3>
+      <p style="color: var(--text-secondary); margin: 0; font-size: 0.85rem;">Share this link so students can join with one click — no typing needed.</p>
+    </div>
+  </div>
+  <div class="invite-link-box">
+    <input type="text" id="inviteLink" value="{{ request.scheme }}://{{ request.get_host }}{% url 'join_course' %}?code={{ course.class_code }}" readonly>
+    <button class="copy-btn" onclick="copyLink()">📋 Copy Link</button>
+  </div>
+  <div style="margin-top: 1rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+    <span style="color: var(--text-secondary); font-size: 0.9rem;">Class Code:</span>
+    <span class="badge badge-success" style="font-size: 1.1rem; letter-spacing: 0.2rem; padding: 0.4rem 1rem; font-family: monospace;">{{ course.class_code }}</span>
+    <button class="copy-btn" style="background: transparent; border: 1px solid var(--accent-primary); color: var(--accent-primary);" onclick="copyCode()">📋 Copy Code</button>
+    <a id="whatsappBtn" href="" target="_blank" rel="noopener" class="copy-btn" style="background: #25D366; text-decoration: none;">📲 Share via WhatsApp</a>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem;">
+  <button class="tab-btn active" id="tab-add" onclick="switchTab('add')">➕ Add Students ({{ available_students.count }} available)</button>
+  <button class="tab-btn" id="tab-enrolled" onclick="switchTab('enrolled')">✅ Enrolled ({{ enrolled_students.count }})</button>
+</div>
+
+<!-- ADD STUDENTS PANEL -->
+<div id="panel-add">
+  {% if available_students %}
+  <form method="POST" id="bulkForm">
+    {% csrf_token %}
+    <div class="card glass" style="padding: 1.5rem;">
+      <!-- Search -->
+      <div style="margin-bottom: 1rem;">
+        <input type="text" id="searchInput" placeholder="🔍 Search by name or username…" oninput="filterStudents()" autocomplete="off">
+      </div>
+
+      <!-- Select All / Count -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-color);">
+        <label style="display: flex; align-items: center; gap: 0.6rem; cursor: pointer; font-weight: 600;">
+          <input type="checkbox" id="selectAll" style="width: 18px; height: 18px; accent-color: var(--accent-primary);" onchange="toggleAll(this)">
+          Select All
+        </label>
+        <span id="selectedCount" style="color: var(--text-secondary); font-size: 0.9rem;">0 selected</span>
+      </div>
+
+      <!-- Student List -->
+      <div id="studentList" style="max-height: 420px; overflow-y: auto; padding-right: 0.25rem;">
+        {% for student in available_students %}
+        <div class="student-row" data-name="{{ student.get_full_name|lower }} {{ student.username|lower }}" onclick="toggleRow(this)">
+          <input type="checkbox" name="student_ids" value="{{ student.id }}" onclick="event.stopPropagation(); updateCount();">
+          <label onclick="event.preventDefault();">
+            <span style="font-weight: 600; color: var(--text-primary);">{{ student.get_full_name|default:student.username }}</span>
+            <span style="color: var(--text-secondary); font-size: 0.85rem; margin-left: 0.5rem;">@{{ student.username }}</span>
+            {% if student.email %}
+            <span style="color: var(--text-secondary); font-size: 0.8rem; display: block;">{{ student.email }}</span>
+            {% endif %}
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- No results msg -->
+      <div id="noResults" style="display:none; color: var(--text-secondary); text-align: center; padding: 2rem;">No students match your search.</div>
+    </div>
+
+    <div style="margin-top: 1.25rem; display: flex; gap: 1rem; justify-content: flex-end;">
+      <a href="{% url 'course_detail' course.id %}" class="btn btn-secondary">Cancel</a>
+      <button type="submit" class="btn btn-primary" id="submitBtn" disabled>Add Selected Students</button>
+    </div>
+  </form>
+
+  {% else %}
+  <div class="card glass text-center" style="padding: 4rem 2rem;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">🎉</div>
+    <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">All registered students are already enrolled!</h3>
+    <p style="color: var(--text-secondary);">Share the invite link above so new students can register and join.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ENROLLED STUDENTS PANEL -->
+<div id="panel-enrolled" style="display: none;">
+  <div class="card glass" style="padding: 1.5rem;">
+    {% if enrolled_students %}
+    <ul style="list-style: none; padding: 0; margin: 0;">
+      {% for student in enrolled_students %}
+      <li style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 0; {% if not forloop.last %}border-bottom: 1px solid var(--border-color);{% endif %}">
+        <span style="width: 36px; height: 36px; border-radius: 50%; background: var(--accent-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; flex-shrink: 0; font-size: 0.9rem;">
+          {{ student.first_name|first|upper|default:student.username|first|upper }}
+        </span>
+        <div>
+          <div style="font-weight: 600;">{{ student.get_full_name|default:student.username }}</div>
+          <div style="color: var(--text-secondary); font-size: 0.85rem;">{{ student.email }}</div>
+        </div>
+        <span class="badge badge-success" style="margin-left: auto; font-size: 0.75rem;">Enrolled ✓</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p style="color: var(--text-secondary); text-align: center; padding: 2rem;">No students enrolled yet.</p>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Tab switching
+  function switchTab(tab) {
+    document.getElementById('panel-add').style.display = tab === 'add' ? 'block' : 'none';
+    document.getElementById('panel-enrolled').style.display = tab === 'enrolled' ? 'block' : 'none';
+    document.getElementById('tab-add').classList.toggle('active', tab === 'add');
+    document.getElementById('tab-enrolled').classList.toggle('active', tab === 'enrolled');
+  }
+
+  // Search filter
+  function filterStudents() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#studentList .student-row');
+    let visible = 0;
+    rows.forEach(row => {
+      const name = row.getAttribute('data-name');
+      const match = name.includes(query);
+      row.style.display = match ? 'flex' : 'none';
+      if (match) visible++;
+    });
+    document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+    document.getElementById('selectAll').checked = false;
+    updateCount();
+  }
+
+  // Select all visible
+  function toggleAll(masterCb) {
+    const rows = document.querySelectorAll('#studentList .student-row');
+    rows.forEach(row => {
+      if (row.style.display !== 'none') {
+        const cb = row.querySelector('input[type="checkbox"]');
+        cb.checked = masterCb.checked;
+      }
+    });
+    updateCount();
+  }
+
+  // Toggle individual row
+  function toggleRow(row) {
+    const cb = row.querySelector('input[type="checkbox"]');
+    cb.checked = !cb.checked;
+    updateCount();
+  }
+
+  // Update count & submit button
+  function updateCount() {
+    const checked = document.querySelectorAll('#studentList input[type="checkbox"]:checked').length;
+    document.getElementById('selectedCount').textContent = checked + ' selected';
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = checked === 0;
+    btn.textContent = checked > 0 ? `Add ${checked} Student${checked !== 1 ? 's' : ''}` : 'Add Selected Students';
+  }
+
+  // Copy invite link
+  function copyLink() {
+    const val = document.getElementById('inviteLink').value;
+    navigator.clipboard.writeText(val).then(() => {
+      const btn = event.target;
+      const original = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = original, 2000);
+    });
+  }
+
+  // Copy class code
+  function copyCode() {
+    navigator.clipboard.writeText('{{ course.class_code }}').then(() => {
+      const btn = event.target;
+      const original = btn.textContent;
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => btn.textContent = original, 2000);
+    });
+  }
+
+  // Set WhatsApp share link on load
+  window.addEventListener('DOMContentLoaded', function() {
+    const link = document.getElementById('inviteLink').value;
+    const msg = encodeURIComponent(
+      'You\'ve been invited to join \"{{ course.name }}\" on Classroom Hub!\n\nClick the link to join instantly:\n' + link
+    );
+    document.getElementById('whatsappBtn').href = 'https://wa.me/?text=' + msg;
+  });
+</script>
+{% endblock %}

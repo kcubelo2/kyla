@@ -2,7 +2,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import FileResponse, HttpResponseForbidden
-from .models import Course, Announcement, LessonFile, Assignment, Submission, AcademicYear, GradeReport
+from .models import Course, Announcement, LessonFile, Assignment, Submission, GradeReport
+from accounts.models import StudentProfile
+from enrollment.models import EnrollmentApplication
 from datetime import date
 
 @login_required
@@ -20,34 +22,44 @@ def student_dashboard(request):
     return render(request, 'hub/student_dashboard.html', {'courses': courses})
 
 @login_required
+def student_profile(request):
+    if not request.user.is_student:
+        return redirect('teacher_dashboard')
+
+    profile, _ = StudentProfile.objects.get_or_create(user=request.user)
+    application = request.user.enrollment_applications.order_by('-created_at').first()
+
+    if request.method == 'POST':
+        photo = request.FILES.get('profile_photo')
+        if photo:
+            profile.profile_photo = photo
+            profile.save()
+            messages.success(request, 'Profile photo updated successfully.')
+        else:
+            messages.error(request, 'Please select a profile photo to upload.')
+        return redirect('student_profile')
+
+    return render(request, 'hub/student_profile.html', {
+        'profile': profile,
+        'application': application,
+    })
+
+@login_required
 def create_course(request):
+    if not request.user.is_teacher:
+        return HttpResponseForbidden("Only teachers can create subjects.")
     if request.method == 'POST':
         name = request.POST.get('name')
         desc = request.POST.get('description', '')
-        academic_year_id = request.POST.get('academic_year')
-        
-        academic_year = None
-        if academic_year_id:
-            academic_year = get_object_or_404(AcademicYear, id=academic_year_id)
-        else:
-            # Use current active year if none selected
-            academic_year = AcademicYear.get_current_year()
-        
         course = Course.objects.create(
             name=name, 
             description=desc, 
-            teacher=request.user,
-            academic_year=academic_year
+            teacher=request.user
         )
         messages.success(request, f"Subject '{course.name}' created! Class Code: {course.class_code}")
         return redirect('teacher_dashboard')
     
-    academic_years = AcademicYear.objects.all().order_by('-start_date')
-    current_year = AcademicYear.get_current_year()
-    return render(request, 'hub/create_course.html', {
-        'academic_years': academic_years,
-        'current_year': current_year
-    })
+    return render(request, 'hub/create_course.html')
 
 @login_required
 def edit_course(request, course_id):
@@ -71,16 +83,20 @@ def delete_course(request, course_id):
 
 @login_required
 def join_course(request):
+    prefill_code = request.GET.get('code', '')
     if request.method == 'POST':
         code = request.POST.get('code')
         try:
             course = Course.objects.get(class_code=code)
+            if request.user in course.students.all():
+                messages.info(request, f"You are already enrolled in {course.name}.")
+                return redirect('student_dashboard')
             course.students.add(request.user)
-            messages.success(request, f"Successfully joined {course.name}")
+            messages.success(request, f"Successfully joined {course.name}!")
             return redirect('student_dashboard')
         except Course.DoesNotExist:
-            messages.error(request, "Invalid class code.")
-    return render(request, 'hub/join_course.html')
+            messages.error(request, "Invalid class code. Please check and try again.")
+    return render(request, 'hub/join_course.html', {'prefill_code': prefill_code})
 
 @login_required
 def course_detail(request, course_id):
@@ -94,7 +110,15 @@ def course_detail(request, course_id):
         
     announcements = course.announcements.all().order_by('-created_at')
     materials = course.lesson_files.all().order_by('-uploaded_at')
-    assignments = course.assignments.all().order_by('-created_at')
+    
+    # Show only one task per activity type (preferring the most recent/upper one)
+    all_assignments = course.assignments.all().order_by('-created_at')
+    assignments = []
+    seen_types = set()
+    for assign in all_assignments:
+        if assign.activity_type not in seen_types:
+            assignments.append(assign)
+            seen_types.add(assign.activity_type)
     
     # Get attendance records for this course
     from attendance.models import AttendanceRecord
@@ -124,6 +148,8 @@ def course_detail(request, course_id):
 
 @login_required
 def create_announcement(request, course_id):
+    if not request.user.is_teacher:
+        return HttpResponseForbidden("Only teachers can create announcements.")
     course = get_object_or_404(Course, id=course_id, teacher=request.user)
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -134,6 +160,8 @@ def create_announcement(request, course_id):
 
 @login_required
 def create_assignment(request, course_id):
+    if not request.user.is_teacher:
+        return HttpResponseForbidden("Only teachers can create assignments.")
     course = get_object_or_404(Course, id=course_id, teacher=request.user)
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -143,14 +171,15 @@ def create_assignment(request, course_id):
         file = request.FILES.get('file')
         Assignment.objects.create(
             course=course, title=title, description=desc, 
-            due_date=due_date, activity_type=activity_type, file=file,
-            academic_year=course.academic_year
+            due_date=due_date, activity_type=activity_type, file=file
         )
         return redirect('course_detail', course_id=course.id)
     return render(request, 'hub/create_assignment.html', {'course': course})
 
 @login_required
 def upload_material(request, course_id):
+    if not request.user.is_teacher:
+        return HttpResponseForbidden("Only teachers can upload materials.")
     course = get_object_or_404(Course, id=course_id, teacher=request.user)
     if request.method == 'POST':
         title = request.POST.get('title')
@@ -186,6 +215,10 @@ def submit_assignment(request, assignment_id):
         messages.error(request, "This task is closed.")
         return redirect('course_detail', course_id=assignment.course.id)
         
+    if assignment.is_overdue:
+        messages.error(request, "The deadline for this assignment has passed.")
+        return redirect('course_detail', course_id=assignment.course.id)
+        
     if existing_submission and existing_submission.score is not None:
         messages.error(request, "This task has already been graded and cannot be edited.")
         return redirect('course_detail', course_id=assignment.course.id)
@@ -210,6 +243,11 @@ def grade_submission(request, submission_id):
     sub = get_object_or_404(Submission, id=submission_id)
     if request.user != sub.assignment.course.teacher:
         return redirect('dashboard')
+    
+    from django.core.signing import Signer
+    signer = Signer()
+    preview_token = signer.sign(str(sub.id)).split(':')[1]
+    
     if request.method == 'POST':
         score = request.POST.get('score')
         letter_grade = request.POST.get('letter_grade')
@@ -219,14 +257,62 @@ def grade_submission(request, submission_id):
         sub.feedback = feedback
         sub.save()
         return redirect('course_detail', course_id=sub.assignment.course.id)
-    return render(request, 'hub/grade_submission.html', {'submission': sub})
+    return render(request, 'hub/grade_submission.html', {'submission': sub, 'preview_token': preview_token})
+
+@login_required
+def export_assignment_grades(request, assignment_id):
+    import csv
+    from django.http import HttpResponse
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    if request.user != assignment.course.teacher:
+        return HttpResponseForbidden("Only the teacher can export grades.")
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="Grades_{assignment.title}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Student Name', 'Username', 'Score', 'Max Score', 'Letter Grade', 'Status', 'Submitted At', 'Feedback'])
+    
+    # Get all students in the course
+    enrolled_students = assignment.course.students.all().order_by('last_name', 'first_name')
+    
+    # Get all submissions for this assignment
+    submissions = Submission.objects.filter(assignment=assignment).select_related('student')
+    sub_dict = {sub.student_id: sub for sub in submissions}
+    
+    for student in enrolled_students:
+        sub = sub_dict.get(student.id)
+        if sub:
+            status = 'Graded' if sub.score is not None else 'Submitted (Not Graded)'
+            score_display = sub.score if sub.score is not None else ''
+            letter_display = sub.letter_grade
+            date_display = sub.submitted_at.strftime("%Y-%m-%d %H:%M") if sub.submitted_at else 'N/A'
+            feedback_display = sub.feedback
+        else:
+            status = 'Not Submitted'
+            score_display = ''
+            letter_display = ''
+            date_display = ''
+            feedback_display = ''
+            
+        writer.writerow([
+            student.get_full_name() or student.username,
+            student.username,
+            score_display,
+            assignment.max_score,
+            letter_display,
+            status,
+            date_display,
+            feedback_display
+        ])
+    
+    return response
 
 @login_required
 def download_submission_file(request, submission_id):
     """Allow student or teacher to download submission file"""
     sub = get_object_or_404(Submission, id=submission_id)
     
-    # Check permissions: student must be the submitter, teacher must be the course teacher
     is_student = sub.student == request.user
     is_teacher = sub.assignment.course.teacher == request.user
     
@@ -236,9 +322,66 @@ def download_submission_file(request, submission_id):
     if not sub.file:
         return HttpResponseForbidden("No file attached to this submission.")
     
-    # Serve the file
     response = FileResponse(sub.file.open('rb'), as_attachment=True)
     response['Content-Disposition'] = f'attachment; filename="{sub.file.name.split("/")[-1]}"'
+    return response
+
+
+from django.views.decorators.clickjacking import xframe_options_sameorigin
+
+@xframe_options_sameorigin
+def preview_submission_file(request, submission_id):
+    """Serve the submission file inline so the browser can display it (no download prompt)."""
+    import mimetypes
+    from django.core.signing import Signer, BadSignature
+    from django.shortcuts import redirect
+    from django.conf import settings
+    
+    sub = get_object_or_404(Submission, id=submission_id)
+
+    token = request.GET.get('token')
+    if token:
+        signer = Signer()
+        try:
+            signer.unsign(f"{submission_id}:{token}")
+            has_access = True
+        except BadSignature:
+            has_access = False
+    else:
+        if not request.user.is_authenticated:
+            return redirect(f"{settings.LOGIN_URL}?next={request.path}")
+        
+        is_student = sub.student == request.user
+        is_teacher = sub.assignment.course.teacher == request.user
+        has_access = is_student or is_teacher
+
+    if not has_access:
+        return HttpResponseForbidden("You don't have permission to view this file.")
+
+    if not sub.file:
+        return HttpResponseForbidden("No file attached to this submission.")
+
+    file_name = sub.file.name.split('/')[-1]
+    
+    # Try rendering DOCX natively with mammoth
+    if file_name.lower().endswith('.docx'):
+        import mammoth
+        try:
+            with sub.file.open('rb') as docx_file:
+                result = mammoth.convert_to_html(docx_file)
+                html = result.value
+                return render(request, 'hub/docx_preview.html', {'html_content': html})
+        except Exception as e:
+            # Fallback to standard file serving if conversion fails
+            pass
+
+    mime_type, _ = mimetypes.guess_type(file_name)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
+
+    response = FileResponse(sub.file.open('rb'), content_type=mime_type)
+    # inline = display in browser, not download
+    response['Content-Disposition'] = f'inline; filename="{file_name}"'
     return response
 
 # --- GLOBAL VIEWS (SIDEBAR) --- #
@@ -281,7 +424,19 @@ def course_scores(request, course_id):
 @login_required
 def teacher_tasks(request):
     if not request.user.is_teacher: return redirect('dashboard')
-    tasks = Assignment.objects.filter(course__teacher=request.user).order_by('-created_at')
+    all_tasks = Assignment.objects.filter(course__teacher=request.user).order_by('-created_at')
+    
+    # Show only one task per activity type per course
+    seen = {}
+    tasks = []
+    for task in all_tasks:
+        course_id = task.course_id
+        if course_id not in seen:
+            seen[course_id] = set()
+        if task.activity_type not in seen[course_id]:
+            tasks.append(task)
+            seen[course_id].add(task.activity_type)
+            
     courses = Course.objects.filter(teacher=request.user)
     return render(request, 'hub/teacher_tasks.html', {'tasks': tasks, 'courses': courses})
 
@@ -311,9 +466,8 @@ def student_scores(request, student_id):
         assignment__course__teacher=request.user
     ).select_related('assignment', 'assignment__course').order_by('-submitted_at')
 
-    current_year = AcademicYear.get_current_year()
     report = GradeReport.objects.filter(
-        student=student, teacher=request.user, academic_year=current_year
+        student=student, teacher=request.user
     ).first()
     
     return render(request, 'hub/student_scores.html', {
@@ -332,11 +486,9 @@ def student_grade_report(request, student_id):
     if not Course.objects.filter(teacher=request.user, students=student).exists():
         return redirect('teacher_students')
 
-    current_year = AcademicYear.get_current_year()
     report, _ = GradeReport.objects.get_or_create(
         student=student,
         teacher=request.user,
-        academic_year=current_year,
         defaults={
             'display_name': student.get_full_name() or student.username,
         }
@@ -358,7 +510,6 @@ def student_grade_report(request, student_id):
             return render(request, 'hub/student_grade_report.html', {
                 'student_user': student,
                 'report': report,
-                'current_year': current_year,
                 'teacher': request.user,
             })
         
@@ -373,7 +524,6 @@ def student_grade_report(request, student_id):
     return render(request, 'hub/student_grade_report.html', {
         'student_user': student,
         'report': report,
-        'current_year': current_year,
         'teacher': request.user,
     })
 
@@ -391,12 +541,10 @@ def print_grade_report(request, student_id):
     if not Course.objects.filter(teacher=request.user, students=student).exists():
         return redirect('teacher_students')
 
-    current_year = AcademicYear.get_current_year()
     report = get_object_or_404(
         GradeReport,
         student=student,
-        teacher=request.user,
-        academic_year=current_year
+        teacher=request.user
     )
 
     # Handle last-minute edits before printing
@@ -428,7 +576,6 @@ def print_grade_report(request, student_id):
     return render(request, 'hub/print_grade_report.html', {
         'student_user': student,
         'report': report,
-        'current_year': current_year,
         'teacher': request.user,
         'average_grade': average_grade,
     })
@@ -443,10 +590,23 @@ def teacher_announcements(request):
 @login_required
 def student_tasks(request):
     if not request.user.is_student: return redirect('dashboard')
-    tasks = list(Assignment.objects.filter(course__students=request.user).order_by('-created_at'))
+    all_tasks = Assignment.objects.filter(course__students=request.user).order_by('-created_at')
+    
+    # Show only one task per activity type per course
+    seen = {}
+    tasks = []
+    for task in all_tasks:
+        course_id = task.course_id
+        if course_id not in seen:
+            seen[course_id] = set()
+        if task.activity_type not in seen[course_id]:
+            tasks.append(task)
+            seen[course_id].add(task.activity_type)
+            
     submissions = {sub.assignment_id: sub for sub in Submission.objects.filter(student=request.user)}
     for task in tasks:
         task.student_submission = submissions.get(task.id)
+        
     courses = Course.objects.filter(students=request.user)
     return render(request, 'hub/student_tasks.html', {'tasks': tasks, 'courses': courses})
 
@@ -483,105 +643,165 @@ def student_scores_view(request):
         'submissions': submissions
     })
 
-@login_required
-def manage_academic_years(request):
-    if not request.user.is_teacher: return redirect('dashboard')
-    academic_years = AcademicYear.objects.all().order_by('-start_date')
-    current_year = AcademicYear.get_current_year()
-    return render(request, 'hub/manage_academic_years.html', {
-        'academic_years': academic_years,
-        'current_year': current_year
-    })
-
-@login_required
-def create_academic_year(request):
-    if not request.user.is_teacher: return redirect('dashboard')
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        start_date = request.POST.get('start_date')
-        end_date = request.POST.get('end_date')
-        is_active = request.POST.get('is_active') == 'on'
-        
-        try:
-            academic_year = AcademicYear.objects.create(
-                name=name,
-                start_date=start_date,
-                end_date=end_date,
-                is_active=is_active
-            )
-            messages.success(request, f"Academic year '{academic_year.name}' created successfully.")
-            return redirect('manage_academic_years')
-        except Exception as e:
-            messages.error(request, f"Error creating academic year: {str(e)}")
-    
-    return render(request, 'hub/create_academic_year.html')
-
-@login_required
-def set_active_year(request, year_id):
-    if not request.user.is_teacher: return redirect('dashboard')
-    academic_year = get_object_or_404(AcademicYear, id=year_id)
-    academic_year.is_active = True
-    academic_year.save()
-    messages.success(request, f"Academic year '{academic_year.name}' is now active.")
-    return redirect('manage_academic_years')
-
-@login_required
-def delete_academic_year(request, year_id):
-    if not request.user.is_teacher: return redirect('dashboard')
-    academic_year = get_object_or_404(AcademicYear, id=year_id)
-    
-    # Prevent deletion if there are courses or assignments associated
-    if academic_year.courses.exists() or academic_year.assignments.exists():
-        messages.error(request, "Cannot delete academic year with associated courses or assignments.")
-        return redirect('manage_academic_years')
-    
-    academic_year.delete()
-    messages.success(request, f"Academic year '{academic_year.name}' deleted successfully.")
-    return redirect('manage_academic_years')
 
 @login_required
 def forms_dashboard(request):
-    if not request.user.is_teacher: return redirect('dashboard')
-    
-    forms_list = [
-        {'id': 'SF1', 'title': 'School Register', 'description': 'Master list of class enrollment and profile'},
-        {'id': 'SF2', 'title': 'Daily Attendance', 'description': 'Daily recording of learner attendance'},
-        {'id': 'SF3', 'title': 'Books Issued', 'description': 'List of books and materials issued to learners'},
-        {'id': 'SF4', 'title': 'Monthly Learner Movement', 'description': 'Summary of enrollment and learner movement'},
-        {'id': 'SF5', 'title': 'Report on Promotion', 'description': 'List of promoted and retained learners'},
-        {'id': 'SF6', 'title': 'Summarized Report on Promotion', 'description': 'Summary of SF5 data'},
-        {'id': 'SF7', 'title': 'School Personnel Assignment', 'description': 'List of school personnel and teaching assignments'},
-        {'id': 'SF8', 'title': 'Learner Basic Health Profile', 'description': 'Nutritional status and health profile of learners'},
-    ]
-    
+    if not request.user.is_teacher:
+        return redirect('dashboard')
+
+    from .models import SchoolFormContent
+    teacher_forms = {form.form_type: form for form in SchoolFormContent.objects.filter(teacher=request.user)}
+    forms_list = []
+    processed_types = set()
+
+    for code, label in SchoolFormContent.FORM_TYPES:
+        form_content = teacher_forms.get(code)
+        processed_types.add(code)
+        forms_list.append({
+            'id': form_content.id if form_content else None,
+            'type_code': code,
+            'title': label,
+            'description': form_content.title if form_content and form_content.title else label,
+            'record': form_content,
+            'has_file': bool(form_content and form_content.file),
+            'file_name': form_content.file_name if form_content and form_content.file else '',
+            'file_url': form_content.file.url if form_content and form_content.file else '',
+        })
+
+    for code, form_content in teacher_forms.items():
+        if code not in processed_types:
+            forms_list.append({
+                'id': form_content.id,
+                'type_code': code,
+                'title': form_content.title or code,
+                'description': form_content.content[:100] if form_content.content else "Custom Form",
+                'record': form_content,
+                'has_file': bool(form_content.file),
+                'file_name': form_content.file_name,
+                'file_url': form_content.file.url if form_content.file else '',
+            })
+
     return render(request, 'hub/forms_dashboard.html', {'forms_list': forms_list})
 
 @login_required
-def edit_school_form(request, form_type):
-    if not request.user.is_teacher: return redirect('dashboard')
+def create_custom_form(request):
+    if not request.user.is_teacher:
+        return redirect('dashboard')
     
+    import uuid
+    code = f"C_{uuid.uuid4().hex[:8]}"
+    
+    return redirect('edit_school_form', form_type=code)
+
+
+@login_required
+def download_school_form(request, form_id):
     from .models import SchoolFormContent
-    
-    # Get current academic year
-    current_year = AcademicYear.get_current_year()
-    
-    # Get or create the form content for this teacher, form type, and academic year
+    form_content = get_object_or_404(SchoolFormContent, id=form_id)
+
+    if request.user.is_teacher:
+        if form_content.teacher != request.user:
+            return HttpResponseForbidden("You don't have access to download this form.")
+    elif request.user.is_student:
+        if not Course.objects.filter(teacher=form_content.teacher, students=request.user).exists():
+            return HttpResponseForbidden("You don't have access to download this form.")
+    else:
+        return HttpResponseForbidden("You don't have permission to download this file.")
+
+    if not form_content.file:
+        messages.error(request, "No file attached to this form yet.")
+        return redirect('forms_dashboard' if request.user.is_teacher else 'student_forms')
+
+    response = FileResponse(form_content.file.open('rb'), as_attachment=True, filename=form_content.file_name)
+    return response
+
+@login_required
+def delete_school_form(request, form_id):
+    if not request.user.is_teacher:
+        return HttpResponseForbidden("Only teachers can delete forms.")
+
+    from .models import SchoolFormContent
+    form_content = get_object_or_404(SchoolFormContent, id=form_id, teacher=request.user)
+    if request.method == 'POST':
+        if form_content.file:
+            form_content.file.delete(save=False)
+        form_content.delete()
+        messages.success(request, f"{form_content.get_form_type_display()} deleted successfully.")
+        return redirect('forms_dashboard')
+
+    return render(request, 'hub/delete_school_form.html', {'form_content': form_content})
+
+@login_required
+def bulk_invite(request, course_id):
+    if not request.user.is_teacher:
+        return HttpResponseForbidden("Only teachers can invite students.")
+    course = get_object_or_404(Course, id=course_id, teacher=request.user)
+
+    from accounts.models import User
+    # All students registered in the system not already in this course
+    enrolled_ids = course.students.values_list('id', flat=True)
+    available_students = User.objects.filter(is_student=True).exclude(id__in=enrolled_ids).order_by('last_name', 'first_name')
+
+    if request.method == 'POST':
+        selected_ids = request.POST.getlist('student_ids')
+        if selected_ids:
+            students_to_add = User.objects.filter(id__in=selected_ids, is_student=True)
+            course.students.add(*students_to_add)
+            count = students_to_add.count()
+            messages.success(request, f"Successfully added {count} student{'s' if count != 1 else ''} to {course.name}.")
+        else:
+            messages.error(request, "No students were selected.")
+        return redirect('bulk_invite', course_id=course.id)
+
+    return render(request, 'hub/bulk_invite.html', {
+        'course': course,
+        'available_students': available_students,
+        'enrolled_students': course.students.all().order_by('last_name', 'first_name'),
+    })
+
+
+@login_required
+def student_forms(request):
+    if not request.user.is_student:
+        return redirect('dashboard')
+
+    from .models import SchoolFormContent
+    teacher_ids = Course.objects.filter(students=request.user).values_list('teacher_id', flat=True).distinct()
+    forms = SchoolFormContent.objects.filter(teacher_id__in=teacher_ids).order_by('form_type')
+    return render(request, 'hub/student_forms.html', {'forms': forms})
+
+@login_required
+def edit_school_form(request, form_type):
+    if not request.user.is_teacher:
+        return redirect('dashboard')
+
+    from .models import SchoolFormContent
     form_content, created = SchoolFormContent.objects.get_or_create(
         form_type=form_type,
         teacher=request.user,
-        academic_year=current_year,
-        defaults={'title': f'{form_type} ({current_year.name if current_year else "No Year"})'}
+        defaults={'title': form_type}
     )
-    
+
     if request.method == 'POST':
         form_content.title = request.POST.get('title', form_content.title)
-        form_content.content = request.POST.get('content', '')
+        form_content.content = request.POST.get('content', form_content.content)
+
+        if request.FILES.get('file'):
+            if form_content.file:
+                form_content.file.delete(save=False)
+            form_content.file = request.FILES['file']
+
+        if request.POST.get('remove_file') == '1' and form_content.file:
+            form_content.file.delete(save=False)
+            form_content.file = None
+
         form_content.save()
         messages.success(request, f"{form_content.get_form_type_display()} saved successfully.")
         return redirect('forms_dashboard')
-        
+
     return render(request, 'hub/edit_school_form.html', {
         'form_content': form_content,
-        'form_type': form_type
+        'form_type': form_type,
+        'is_custom': form_type.startswith('C_') or form_type not in dict(SchoolFormContent.FORM_TYPES)
     })
 

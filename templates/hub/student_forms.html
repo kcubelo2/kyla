@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <h2>Available School Forms</h2>
+    <a href="{% url 'student_dashboard' %}" class="btn btn-outline">← Back to Dashboard</a>
+</div>
+
+<div class="grid grid-4" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem;">
+    {% for form in forms %}
+    <div class="card glass" style="display: flex; flex-direction: column; justify-content: space-between;">
+        <div>
+            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
+                <h3 style="margin: 0; color: var(--primary);">{{ form.form_type }}</h3>
+                <span class="badge badge-outline" style="font-size: 0.75rem;">{{ form.teacher.username }}</span>
+            </div>
+            <h4 style="margin-bottom: 0.5rem; font-size: 1.1rem;">{{ form.title|default:form.get_form_type_display }}</h4>
+            {% if form.file %}
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">Attached file: {{ form.file_name }}</p>
+            {% else %}
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1rem;">No downloadable file available yet.</p>
+            {% endif %}
+        </div>
+        <div style="margin-top: auto;">
+            {% if form.file %}
+            <a href="{% url 'download_school_form' form.id %}" class="btn btn-primary" style="width: 100%; text-align: center; display: block;">Download File</a>
+            {% else %}
+            <span class="btn btn-disabled" style="width: 100%; display: block; text-align: center;">No file yet</span>
+            {% endif %}
+        </div>
+    </div>
+    {% empty %}
+    <p style="color: var(--text-secondary);">No form files are available from your current classes.</p>
+    {% endfor %}
+</div>
+{% endblock %}

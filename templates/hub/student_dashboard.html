@@ -1,21 +1,32 @@
 {% extends 'base.html' %}
 
+{% block title %}My Subjects – Student Hub{% endblock %}
+
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>Student Hub</h2>
-    <a href="{% url 'join_course' %}" class="btn btn-primary">+ Join Class</a>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; gap: 1rem; flex-wrap: wrap;">
+    <div>
+        <h2 style="margin: 0;">My Subjects</h2>
+        <p style="color: var(--text-secondary); margin: 0.25rem 0 0;">{{ courses|length }} subject{{ courses|length|pluralize }} enrolled</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+        <a href="{% url 'join_course' %}" class="btn btn-primary">➕ Join Subject</a>
+        <a href="{% url 'student_profile' %}" class="btn btn-secondary">My Profile</a>
+    </div>
 </div>
 
 {% if courses %}
 <div class="grid grid-3">
     {% for course in courses %}
-    <div class="card glass">
+    <div class="card glass" style="transition: transform 0.2s ease, box-shadow 0.2s ease;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 32px rgba(0,0,0,0.25)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow=''">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-            <div class="badge badge-primary" style="display: inline-block;">Teacher: {{ course.teacher.get_full_name|default:course.teacher.username }}</div>
+            <div class="badge badge-primary" style="display: inline-block;">{{ course.teacher.get_full_name|default:course.teacher.username }}</div>
+            {% if course.section %}
+            <div class="badge" style="display: inline-block; background: rgba(255,255,255,0.08); color: var(--text-secondary); font-size: 0.75rem;">{{ course.section }}</div>
+            {% endif %}
         </div>
-        <h3>{{ course.name }}</h3>
-        <p style="color: var(--text-secondary); height: 40px; overflow: hidden; margin-bottom: 1rem;">
-            {{ course.description }}
+        <h3 style="margin: 0.75rem 0 0.5rem;">{{ course.name }}</h3>
+        <p style="color: var(--text-secondary); height: 40px; overflow: hidden; margin-bottom: 1rem; font-size: 0.9rem;">
+            {{ course.description|default:"No description provided." }}
         </p>
         <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 1rem 0;">
         <a href="{% url 'course_detail' course.id %}" class="btn btn-outline" style="width: 100%;">Enter Subject</a>
@@ -23,9 +34,11 @@
     {% endfor %}
 </div>
 {% else %}
-<div class="card glass text-center" style="padding: 4rem;">
-    <h3 style="color: var(--text-secondary);">You haven't joined any subjects yet.</h3>
-    <a href="{% url 'join_course' %}" class="btn btn-primary" style="margin-top: 1rem;">Join Your First Subject</a>
+<div class="card glass text-center" style="padding: 5rem 2rem;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+    <h3 style="color: var(--text-secondary); margin-bottom: 0.5rem;">No subjects yet</h3>
+    <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Ask your teacher for a class code to join your first subject.</p>
+    <a href="{% url 'join_course' %}" class="btn btn-primary">➕ Join a Subject</a>
 </div>
 {% endif %}
 {% endblock %}

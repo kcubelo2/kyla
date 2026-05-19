@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div style="margin: 2rem auto;">
+    <div class="card glass" style="padding: 2rem;">
+        <h2 style="margin-bottom: 1.5rem; color: var(--primary);">Manage Enrollments</h2>
+        
+        {% if applications %}
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 1rem;">Student Name</th>
+                            <th style="padding: 1rem;">Grade Level</th>
+                            <th style="padding: 1rem;">Date Submitted</th>
+                            <th style="padding: 1rem;">Status</th>
+                            <th style="padding: 1rem;">Documents</th>
+                            <th style="padding: 1rem;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for app in applications %}
+                            <tr style="border-bottom: 1px solid var(--border-color);">
+                                <td style="padding: 1rem;">{{ app.first_name }} {{ app.last_name }}</td>
+                                <td style="padding: 1rem;">{{ app.grade_level }}</td>
+                                <td style="padding: 1rem;">{{ app.created_at|date:"M j, Y" }}</td>
+                                <td style="padding: 1rem;">
+                                    {% if app.status == 'pending' %}
+                                        <span class="badge" style="background: #f59e0b; color: #000; padding: 0.25rem 0.5rem; border-radius: 1rem; font-size: 0.8rem;">Pending</span>
+                                    {% elif app.status == 'approved' %}
+                                        <span class="badge" style="background: #10b981; color: #fff; padding: 0.25rem 0.5rem; border-radius: 1rem; font-size: 0.8rem;">Approved</span>
+                                    {% elif app.status == 'rejected' %}
+                                        <span class="badge" style="background: #ef4444; color: #fff; padding: 0.25rem 0.5rem; border-radius: 1rem; font-size: 0.8rem;">Rejected</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 1rem;">
+                                    {{ app.documents.count }} files
+                                    {% if app.documents.exists %}
+                                        <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                            {% for doc in app.documents.all %}
+                                                <a href="{{ doc.file.url }}" target="_blank" style="color: var(--primary);">View Doc</a>{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td style="padding: 1rem;">
+                                    <form method="POST" style="display: inline-flex; gap: 0.5rem;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="app_id" value="{{ app.id }}">
+                                        <select name="status" style="padding: 0.25rem; border-radius: 0.25rem; background: var(--bg-secondary); color: var(--text-primary);">
+                                            <option value="pending" {% if app.status == 'pending' %}selected{% endif %}>Pending</option>
+                                            <option value="approved" {% if app.status == 'approved' %}selected{% endif %}>Approve</option>
+                                            <option value="rejected" {% if app.status == 'rejected' %}selected{% endif %}>Reject</option>
+                                        </select>
+                                        <button type="submit" class="btn btn-primary" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Update</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p style="color: var(--text-secondary);">No enrollment applications found.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

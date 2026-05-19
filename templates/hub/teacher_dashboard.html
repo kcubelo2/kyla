@@ -2,8 +2,14 @@
 
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <h2>Teacher Dashboard</h2>
-    <a href="{% url 'create_course' %}" class="btn btn-primary">+ Create Subject</a>
+    <div>
+        <h2>Teacher Dashboard</h2>
+        <p style="color: var(--text-secondary); margin-top: 0.5rem; max-width: 600px;">Approve completed student enrollment applications from here so new students can join your classes.</p>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <a href="{% url 'manage_enrollments' %}" class="btn btn-secondary">Review Applications</a>
+        <a href="{% url 'create_course' %}" class="btn btn-primary">+ Create Subject</a>
+    </div>
 </div>
 
 {% if courses %}
